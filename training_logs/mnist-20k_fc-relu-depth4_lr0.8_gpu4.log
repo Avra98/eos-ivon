@@ -1,0 +1,109 @@
+/egr/research-slim/ghoshavr/edge-of-stability/src/cifar.py:79: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  y_train = torch.tensor(mnist_train.targets)
+/egr/research-slim/ghoshavr/edge-of-stability/src/cifar.py:80: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  y_test = torch.tensor(mnist_test.targets)
+device: cuda:4
+output directory: RESULTS/mnist-20k/fc-relu-depth4/seed_0/mse/gd//lr_0.8
+eigenvalues:  tensor([1.5432, 1.4784])
+0	0.508	0.099	0.509	0.096
+eigenvalues:  tensor([1.4995, 1.4404])
+eigenvalues:  tensor([1.5995, 1.5340])
+10	0.439	0.397	0.439	0.394
+eigenvalues:  tensor([2.0470, 1.7226])
+eigenvalues:  tensor([3.8472, 2.4230])
+20	0.392	0.471	0.392	0.465
+eigenvalues:  tensor([16.3826,  7.5642])
+eigenvalues:  tensor([1.6163, 1.4153])
+30	0.434	0.365	0.434	0.376
+eigenvalues:  tensor([2.5519, 1.8093])
+eigenvalues:  tensor([5.1469, 3.4365])
+40	0.450	0.278	0.452	0.267
+eigenvalues:  tensor([4.2289, 1.8360])
+eigenvalues:  tensor([2.1795, 1.9795])
+50	0.368	0.544	0.368	0.536
+eigenvalues:  tensor([5.1580, 3.8693])
+eigenvalues:  tensor([3.6880, 2.3720])
+60	0.333	0.562	0.334	0.562
+eigenvalues:  tensor([2.6291, 2.4617])
+eigenvalues:  tensor([3.5738, 3.3704])
+70	0.264	0.702	0.265	0.701
+eigenvalues:  tensor([3.1651, 2.8750])
+eigenvalues:  tensor([3.6707, 3.1024])
+80	0.344	0.532	0.345	0.535
+eigenvalues:  tensor([5.7853, 4.9491])
+eigenvalues:  tensor([3.7333, 2.9657])
+90	0.203	0.723	0.204	0.719
+eigenvalues:  tensor([3.9799, 3.6379])
+eigenvalues:  tensor([3.1422, 3.0541])
+100	0.171	0.805	0.171	0.807
+eigenvalues:  tensor([4.4251, 3.8984])
+eigenvalues:  tensor([2.9159, 2.7128])
+110	0.168	0.823	0.169	0.820
+eigenvalues:  tensor([3.8494, 2.9851])
+eigenvalues:  tensor([3.3128, 3.1455])
+120	0.148	0.837	0.148	0.833
+eigenvalues:  tensor([4.3372, 3.0361])
+eigenvalues:  tensor([3.2688, 3.0639])
+130	0.171	0.799	0.171	0.795
+eigenvalues:  tensor([3.9391, 3.3386])
+eigenvalues:  tensor([3.4379, 3.0778])
+140	0.120	0.879	0.120	0.880
+eigenvalues:  tensor([3.2647, 2.9887])
+eigenvalues:  tensor([4.9370, 3.8304])
+150	0.132	0.860	0.133	0.859
+eigenvalues:  tensor([2.8705, 2.6021])
+eigenvalues:  tensor([3.5513, 3.2002])
+160	0.130	0.874	0.129	0.876
+eigenvalues:  tensor([3.3000, 2.9236])
+eigenvalues:  tensor([3.6091, 2.9831])
+170	0.133	0.849	0.134	0.844
+eigenvalues:  tensor([3.2134, 2.9279])
+eigenvalues:  tensor([2.7402, 2.4567])
+180	0.091	0.907	0.091	0.904
+eigenvalues:  tensor([3.3918, 3.0820])
+eigenvalues:  tensor([3.3956, 2.4300])
+190	0.103	0.902	0.104	0.900
+eigenvalues:  tensor([2.8952, 2.7641])
+eigenvalues:  tensor([3.0596, 2.8130])
+200	0.083	0.913	0.084	0.910
+eigenvalues:  tensor([2.8439, 2.6668])
+eigenvalues:  tensor([3.1780, 2.8364])
+210	0.084	0.915	0.086	0.909
+eigenvalues:  tensor([2.7603, 2.6066])
+eigenvalues:  tensor([2.8339, 2.7558])
+220	0.073	0.925	0.075	0.921
+eigenvalues:  tensor([3.0853, 2.5767])
+eigenvalues:  tensor([2.9529, 2.7211])
+230	0.082	0.920	0.085	0.913
+eigenvalues:  tensor([2.7078, 2.4872])
+eigenvalues:  tensor([2.6089, 2.4512])
+240	0.064	0.934	0.067	0.929
+eigenvalues:  tensor([2.7527, 2.4754])
+eigenvalues:  tensor([2.9846, 2.6074])
+250	0.070	0.930	0.073	0.924
+eigenvalues:  tensor([2.9417, 2.6705])
+eigenvalues:  tensor([2.5388, 2.4169])
+260	0.061	0.939	0.064	0.932
+eigenvalues:  tensor([2.6383, 2.4698])
+eigenvalues:  tensor([2.5068, 2.4208])
+270	0.056	0.943	0.060	0.937
+eigenvalues:  tensor([2.6911, 2.5327])
+eigenvalues:  tensor([2.5665, 2.4846])
+280	0.057	0.943	0.061	0.936
+eigenvalues:  tensor([2.7725, 2.6077])
+eigenvalues:  tensor([2.7651, 2.4321])
+290	0.059	0.942	0.063	0.934
+eigenvalues:  tensor([2.6831, 2.5744])
+eigenvalues:  tensor([2.6311, 2.5534])
+300	0.055	0.944	0.059	0.937
+eigenvalues:  tensor([2.6635, 2.4976])
+eigenvalues:  tensor([2.6764, 2.4704])
+310	0.051	0.948	0.056	0.941
+Traceback (most recent call last):
+  File "src/gd.py", line 130, in <module>
+    seed=args.seed,device_id=args.device_id)
+  File "src/gd.py", line 91, in main
+    plot_singular_values(singular_value_storage, directory)    
+  File "/egr/research-slim/ghoshavr/edge-of-stability/src/utilities.py", line 295, in plot_singular_values
+    num_singular_values = all_singular_values.shape[1]  # Total number of singular values
+IndexError: tuple index out of range

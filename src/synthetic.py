@@ -14,7 +14,8 @@ def make_chebyshev_dataset(k, n=10000):
     c = np.zeros(k + 1)
     c[-1] = 1
     y = torch.from_numpy(chebyshev.chebval(X.numpy(), c)).float()
-    dataset = TensorDataset(X.unsqueeze(1), y.unsqueeze(1))
+    dataset = TensorDataset(X.unsqueeze(1).t(), y.unsqueeze(1).t())
+    print(X.shape, y.shape)
     return dataset, dataset
 
 
@@ -23,7 +24,7 @@ def make_linear_dataset(n, d, seed=0):
     Create a dataset for training a deep linear network with n datapoints of dimension d.
     """
     torch.manual_seed(seed)
-    X = (torch.qr(torch.randn(n, d))[0] * sqrt(n)).cuda()
+    X = (torch.linalg.qr(torch.randn(n, d))[0] * sqrt(n)).cuda()
     A = torch.randn(d, d).cuda()
     Y = X.mm(A.t())
     return TensorDataset(X, Y), TensorDataset(X, Y)

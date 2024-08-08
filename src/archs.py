@@ -47,6 +47,13 @@ def fully_connected_net(dataset_name: str, widths: List[int], activation: str, b
     modules.append(nn.Linear(widths[-1], num_classes(dataset_name), bias=bias))
     return nn.Sequential(*modules)
 
+def fully_connected_net_no_activation(dataset_name: str, widths: List[int], bias: bool = True) -> nn.Module:
+    modules = [nn.Flatten()]
+    for l in range(len(widths)):
+        prev_width = widths[l - 1] if l > 0 else num_pixels(dataset_name)
+        modules.append(nn.Linear(prev_width, widths[l], bias=bias))
+    modules.append(nn.Linear(widths[-1], num_classes(dataset_name), bias=bias))
+    return nn.Sequential(*modules)
 
 def fully_connected_net_bn(dataset_name: str, widths: List[int], activation: str, bias: bool = True) -> nn.Module:
     modules = [nn.Flatten()]
@@ -120,6 +127,7 @@ def load_architecture(arch_id: str, dataset_name: str) -> nn.Module:
     #  ======   fully-connected networks =======
     if arch_id == 'fc-relu':
         return fully_connected_net(dataset_name, [200, 200], 'relu', bias=True)
+        #return fully_connected_net_no_activation(dataset_name, [200, 200],  bias=True)
     elif arch_id == 'fc-elu':
         return fully_connected_net(dataset_name, [200, 200], 'elu', bias=True)
     elif arch_id == 'fc-tanh':
@@ -163,7 +171,7 @@ def load_architecture(arch_id: str, dataset_name: str) -> nn.Module:
     # elif arch_id == 'transformer':
         # return TransformerModelFixed()
     elif arch_id == 'deeplinear':
-        return make_deeplinear(20, 50)
+        return make_deeplinear(10, 100)
     elif arch_id == 'regression':
         return make_one_layer_network(h=100, activation='tanh')
 
@@ -176,3 +184,11 @@ def load_architecture(arch_id: str, dataset_name: str) -> nn.Module:
         return fully_connected_net(dataset_name, [200, 200, 200], 'tanh', bias=True)
     elif arch_id == 'fc-tanh-depth4':
         return fully_connected_net(dataset_name, [200, 200, 200, 200], 'tanh', bias=True)
+
+
+    elif arch_id == 'fc-relu-depth4':
+        return fully_connected_net(dataset_name, [200, 200, 200, 200], 'relu', bias=True)   
+    elif arch_id == 'fc-relu-depth6':
+        return fully_connected_net(dataset_name, [200, 200, 200, 200, 200, 200], 'relu', bias=True)    
+    elif arch_id == 'fc-relu-depth8':
+        return fully_connected_net(dataset_name, [200, 200, 200, 200, 200, 200, 200, 200], 'relu', bias=True)       

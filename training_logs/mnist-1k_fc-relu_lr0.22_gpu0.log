@@ -1,0 +1,41 @@
+/egr/research-slim/ghoshavr/edge-of-stability/src/cifar.py:79: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  y_train = torch.tensor(mnist_train.targets)
+/egr/research-slim/ghoshavr/edge-of-stability/src/cifar.py:80: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  y_test = torch.tensor(mnist_test.targets)
+device: cuda:0
+output directory: RESULTS/mnist-1k/fc-relu/seed_0/mse/gd//lr_0.22
+eigenvalues:  tensor([3.2424, 3.0169])
+0	0.512	0.102	0.513	0.106
+10	0.373	0.669	0.381	0.622
+20	0.290	0.764	0.306	0.709
+30	0.239	0.798	0.264	0.744
+40	0.221	0.823	0.248	0.768
+50	0.188	0.850	0.222	0.793
+60	0.211	0.804	0.247	0.737
+70	0.171	0.874	0.212	0.801
+80	0.155	0.903	0.199	0.833
+90	0.136	0.917	0.182	0.847
+eigenvalues:  tensor([9.9808, 9.2928])
+100	0.126	0.925	0.175	0.849
+110	0.124	0.924	0.175	0.842
+120	0.114	0.930	0.164	0.853
+130	0.106	0.933	0.157	0.863
+140	0.100	0.941	0.154	0.869
+150	0.094	0.947	0.149	0.873
+160	0.088	0.949	0.145	0.875
+170	0.085	0.954	0.143	0.875
+180	0.084	0.956	0.144	0.873
+190	0.078	0.960	0.140	0.877
+eigenvalues:  tensor([8.7220, 8.4578])
+200	0.073	0.963	0.136	0.882
+210	0.070	0.964	0.134	0.883
+220	0.067	0.966	0.133	0.883
+230	0.065	0.967	0.131	0.885
+240	0.062	0.969	0.129	0.887
+250	0.060	0.972	0.128	0.888
+260	0.058	0.973	0.126	0.890
+270	0.056	0.974	0.125	0.890
+280	0.054	0.976	0.124	0.892
+290	0.053	0.978	0.123	0.892
+eigenvalues:  tensor([8.7480, 8.5956])
+300	0.050	0.980	0.121	0.893

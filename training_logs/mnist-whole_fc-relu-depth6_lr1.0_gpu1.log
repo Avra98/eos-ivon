@@ -1,0 +1,54 @@
+/egr/research-slim/ghoshavr/edge-of-stability/src/cifar.py:79: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  y_train = torch.tensor(mnist_train.targets)
+/egr/research-slim/ghoshavr/edge-of-stability/src/cifar.py:80: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  y_test = torch.tensor(mnist_test.targets)
+device: cuda:1
+output directory: RESULTS/mnist-whole/fc-relu-depth6/seed_0/mse/gd//lr_1.0
+eigenvalues:  tensor([1.5851, 1.5738])
+0	0.527	0.102	0.527	0.101
+10	0.449	0.114	0.449	0.113
+20	0.449	0.114	0.449	0.113
+30	0.448	0.114	0.448	0.113
+40	0.447	0.167	0.447	0.172
+50	0.443	0.305	0.442	0.314
+60	0.432	0.231	0.432	0.228
+70	0.417	0.279	0.416	0.271
+80	0.429	0.342	0.429	0.340
+90	0.438	0.163	0.437	0.162
+eigenvalues:  tensor([3.8802, 2.7308])
+100	0.381	0.356	0.378	0.360
+110	0.370	0.407	0.369	0.401
+120	0.375	0.427	0.373	0.427
+130	0.374	0.381	0.373	0.379
+140	0.368	0.396	0.368	0.392
+150	0.356	0.478	0.356	0.485
+160	0.326	0.502	0.325	0.507
+170	0.320	0.512	0.321	0.518
+180	0.282	0.590	0.281	0.592
+190	0.268	0.607	0.266	0.609
+eigenvalues:  tensor([3.2623, 2.9371])
+200	0.398	0.466	0.396	0.467
+210	0.215	0.742	0.213	0.748
+220	0.208	0.701	0.206	0.702
+230	0.203	0.712	0.201	0.718
+240	0.227	0.780	0.225	0.785
+250	0.184	0.777	0.181	0.781
+260	0.166	0.795	0.163	0.798
+270	0.199	0.774	0.196	0.777
+280	0.183	0.827	0.179	0.840
+290	0.154	0.834	0.153	0.831
+eigenvalues:  tensor([3.2850, 3.0846])
+300	0.164	0.850	0.161	0.858
+310	0.188	0.808	0.186	0.813
+320	0.137	0.871	0.135	0.872
+330	0.117	0.890	0.117	0.891
+340	0.139	0.892	0.137	0.893
+350	0.113	0.894	0.113	0.893
+360	0.080	0.919	0.079	0.918
+370	0.067	0.930	0.066	0.931
+380	0.074	0.927	0.073	0.927
+390	0.070	0.930	0.069	0.930
+eigenvalues:  tensor([2.4685, 2.2193])
+400	0.079	0.929	0.079	0.928
+410	0.068	0.930	0.069	0.928
+420	0.052	0.943	0.052	0.942

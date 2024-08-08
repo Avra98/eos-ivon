@@ -1,0 +1,31 @@
+/egr/research-slim/ghoshavr/edge-of-stability/src/utilities.py:242: UserWarning: torch.linalg.svd: During SVD computation with the selected cusolver driver, batches 0 failed to converge. A more accurate method will be used to compute the SVD as a fallback. Check doc at https://pytorch.org/docs/stable/generated/torch.linalg.svd.html (Triggered internally at /opt/conda/conda-bld/pytorch_1670525541035/work/aten/src/ATen/native/cuda/linalg/BatchLinearAlgebraLib.cpp:869.)
+  u, s, v = torch.svd(layer.weight.data)
+device: cuda:5
+output directory: RESULTS/cifar10-2k/fc-relu-depth4/seed_0/mse/gd//lr_1.5
+Files already downloaded and verified
+Files already downloaded and verified
+eigenvalues:  tensor([2.0017, 1.9897])
+0	0.501	0.102	0.501	0.116
+10	0.425	0.271	0.433	0.237
+20	0.416	0.304	0.429	0.259
+30	0.418	0.326	0.435	0.273
+40	0.383	0.427	0.419	0.306
+50	0.411	0.303	0.425	0.255
+60	0.465	0.230	0.483	0.197
+70	0.423	0.303	0.462	0.228
+80	0.415	0.339	0.446	0.270
+90	0.415	0.336	0.470	0.242
+eigenvalues:  tensor([2.9078, 2.4623])
+100	0.346	0.487	0.429	0.309
+110	0.508	0.313	0.549	0.208
+120	0.404	0.384	0.461	0.250
+130	0.377	0.431	0.483	0.288
+140	1552993241463259136.000	0.095	1644101661158801408.000	0.100
+Traceback (most recent call last):
+  File "src/gd.py", line 126, in <module>
+    seed=args.seed,device_id=args.device_id)
+  File "src/gd.py", line 58, in main
+    store_singular_values(network, singular_value_storage)
+  File "/egr/research-slim/ghoshavr/edge-of-stability/src/utilities.py", line 242, in store_singular_values
+    u, s, v = torch.svd(layer.weight.data)
+torch._C._LinAlgError: linalg.svd: The algorithm failed to converge because the input matrix is ill-conditioned or has too many repeated singular values (error code: 199).
