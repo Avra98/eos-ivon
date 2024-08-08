@@ -1,6 +1,45 @@
-batch
-notebooks
-upload.sh
-demo.py
+# Ignore node_modules folder
+node_modules/
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+
+# Ignore OS generated files
 .DS_Store
-.idea
+Thumbs.db
+
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+
+# Ignore environment files
+.env
+
+# Ignore build directories
+build/
+dist/
+
+# Ignore IDE specific files
+.vscode/
+.idea/
+
+# Ignore coverage reports
+coverage/
+*.coverage
+
+# Ignore specific file types
+*.bak
+*.swp
+
+# Ignore personal settings files
+*.sublime-project
+*.sublime-workspace
+
+# Ignore other specific directories
+temp/
+cache/
+
+# Custom ignores
+training_logs/
+paper_figures/
