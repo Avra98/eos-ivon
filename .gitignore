@@ -43,3 +43,5 @@ cache/
 # Custom ignores
 training_logs/
 paper_figures/
+RESULTS/
+
