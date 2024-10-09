@@ -7,7 +7,7 @@ from synthetic import make_chebyshev_dataset, make_linear_dataset
 # from wikitext import load_wikitext_2
 
 DATASETS = [
-    "cifar10", "cifar10-1k", "cifar10-2k", "cifar10-5k", "cifar10-10k", "cifar10-20k", "chebyshev-3-20",
+    "cifar10", "cifar10-1k", "cifar10-2k", "cifar10-5k", "cifar10-100", "cifar10-200","cifar10-10k", "cifar10-20k", "chebyshev-3-20",
     "chebyshev-4-20", "chebyshev-1-100", "chebyshev-5-100", "chebyshev-2-100", "linear-50-50", "mnist-whole",
     "mnist-20k", "mnist-5k", "mnist-1k","cifar10-100", "cifar10-200"
 ]
@@ -53,33 +53,39 @@ def get_pooling(pooling: str):
 def num_pixels(dataset_name: str) -> int:
     return num_input_channels(dataset_name) * image_size(dataset_name)**2
 
-def take_first(dataset: TensorDataset, num_to_keep: int):
-    return TensorDataset(dataset.tensors[0][0:num_to_keep], dataset.tensors[1][0:num_to_keep])
+def take_first(dataset: TensorDataset, num_to_keep: int, device: torch.device):
+    #print("device is",device)
+    return TensorDataset(dataset.tensors[0][0:num_to_keep].to(device), dataset.tensors[1][0:num_to_keep].to(device))
 
 def load_dataset(dataset_name: str, loss: str, device: torch.device) -> (TensorDataset, TensorDataset):
     if dataset_name == "cifar10":
         return load_cifar(loss, device)
     elif dataset_name == "cifar10-100":
         train, test = load_cifar(loss, device)
-        return take_first(train, 100), test
+        return take_first(train, 100, device), test
     elif dataset_name == "cifar10-200":
         train, test = load_cifar(loss, device)
-        return take_first(train, 200), test
+        return take_first(train, 200, device), test
     elif dataset_name == "cifar10-1k":
         train, test = load_cifar(loss, device)
-        return take_first(train, 1000), test
+        return take_first(train, 1000, device), test
     elif dataset_name == "cifar10-2k":
         train, test = load_cifar(loss, device)
-        return take_first(train, 2000), test
+        return take_first(train, 2000, device), test
     elif dataset_name == "cifar10-5k":
         train, test = load_cifar(loss, device)
-        return take_first(train, 5000), test
+    elif dataset_name == "cifar10-100":
+        train, test = load_cifar(loss, device)
+        return take_first(train, 100, device), test
+    elif dataset_name == "cifar10-200":
+        train, test = load_cifar(loss, device)
+        return take_first(train, 200, device), test
     elif dataset_name == "cifar10-10k":
         train, test = load_cifar(loss, device)
-        return take_first(train, 10000), test
+        return take_first(train, 10000, device), test
     elif dataset_name == "cifar10-20k":
         train, test = load_cifar(loss, device)
-        return take_first(train, 20000), test
+        return take_first(train, 20000, device), test
     elif dataset_name == "chebyshev-5-100":
         return make_chebyshev_dataset(k=5, n=100)
     elif dataset_name == "chebyshev-2-100":
@@ -94,14 +100,14 @@ def load_dataset(dataset_name: str, loss: str, device: torch.device) -> (TensorD
         return make_linear_dataset(n=50, d=50)
     elif dataset_name == 'mnist-whole':
         train,test = load_mnist(loss, device)
-        return take_first(train, 50000), test
+        return take_first(train, 50000, device), test
     elif dataset_name == 'mnist-20k':
         train,test = load_mnist(loss, device)
-        return take_first(train, 20000), test
+        return take_first(train, 20000, device), test
     elif dataset_name == 'mnist-5k':
         train,test = load_mnist(loss, device)
-        return take_first(train, 5000), test
+        return take_first(train, 5000, device), test
     elif dataset_name == 'mnist-1k':
         train,test = load_mnist(loss, device)
-        return take_first(train, 1000), test
+        return take_first(train, 1000, device), test
 

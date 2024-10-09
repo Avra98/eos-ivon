@@ -1,0 +1,10 @@
+device: cuda:4
+output directory: RESULTS/cifar10-10k/resnet32/seed_0_diff/ce/ivon/lr_0.05_h0_5.0_post_4_ivon
+Files already downloaded and verified
+Files already downloaded and verified
+0	2.310	0.101	2.310	0.098
+10	2.237	0.179	2.239	0.177
+20	2.208	0.207	2.211	0.202
+30	2.182	0.221	2.184	0.219
+40	2.158	0.230	2.160	0.228
+eigenvalues:  tensor([17.5453, 13.4370])
