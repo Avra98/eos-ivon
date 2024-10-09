@@ -23,4 +23,19 @@ training_logs/
 plot_scripts/
 quad_converge_old.py/
 
+## other files
 
+bash_plt.sh
+basic_plt.py
+holder_table.py
+ivon.sh
+logistic_regression_highdim.py
+logistic_regression.py
+plt_ivon_mse.py
+plt_ivon.py
+plt_second.py
+quad_stable.sh
+range_ivon_stability.py
+quadratic.py
+t_student.py
+welford.py
