@@ -22,11 +22,11 @@ To run the code, you need to set two environment variables:
 To run the EOS dynamics for GD, please run 
 
 ```
-python src/gd.py --dataset="cifar10-10k" --arch="fc-tanh"  --loss="mse"  --lr=0.05 -max_iters=100000 --neigs=2  --eig_freq=50
+python src/gd.py --dataset="cifar10-10k" --arch="fc-tanh"  --loss="mse"  --lr=0.05 -max_steps=10000 --neigs=2  --eig_freq=50
 ```
 
 To run EOS dynamics for fixed covariance IVON run
 
 ```
-python src/gd.py --dataset="cifar10-10k" --arch="fc-tanh"  --loss="mse"  --lr=0.05 -max_iters=100000 --neigs=2  --eig_freq=50 --opt="ivon" --beta2=1.0 --h0=0.07 
+python src/gd.py --dataset="cifar10-10k" --arch="fc-tanh"  --loss="mse"  --lr=0.05 -max_steps=10000 --neigs=2  --eig_freq=50 --opt="ivon" --beta2=1.0 --h0=0.7 
 ```
