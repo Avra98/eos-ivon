@@ -105,23 +105,22 @@ def compute_losses(network: nn.Module, loss_functions: List[nn.Module], dataset:
 
 
 
-def compute_neg_elbo(network: nn.Module, loss_functions: List[nn.Module], dataset: Dataset,
-                   batch_size: int = DEFAULT_PHYS_BS, device: torch.device = torch.device('cpu'), optimizer):
-    """Compute loss over a dataset, with data and model moved to the specified device."""
-    # Move the model to the specified device
-    network.to(device)
-    L = len(loss_functions)
-    losses = [0. for _ in range(L)]
-    with torch.no_grad():  # No gradients needed for loss computation
-        for (X, y) in iterate_dataset(dataset, batch_size):
-            # Move data to the specified device
-            X, y = X.to(device), y.to(device)    
-            #print("network device", next(network.parameters()).device)      
-            preds = network(X)
-            for l, loss_fn in enumerate(loss_functions):
-                # Accumulate the loss, normalized by the dataset size
-                losses[l] += loss_fn(preds, y).item() / len(dataset)
-    return losses
+def compute_neg_elbo(optimizer, ess, network: torch.nn.Module, loss_functions: List[torch.nn.Module], dataset: Dataset,
+                     batch_size: int = DEFAULT_PHYS_BS, device: torch.device = torch.device('cpu')):
+    """Compute negative ELBO (evidence lower bound) over a dataset, with data and model moved to the specified device."""
+    
+    # Compute loss
+    loss = compute_losses(network, loss_functions, dataset, batch_size, device)
+    # Extract Hessian and number of parameters
+    hess = optimizer.state_dict()['param_groups'][0]['hess']
+    d = len(parameters_to_vector(network.parameters()))  # number of model parameters
+    
+    entropy = (d/2) * (1 + torch.log(2 * torch.pi)) + 0.5 * torch.sum(torch.log(1 / ess * (1 / hess)))
+
+    # Compute the negative ELBO
+    neg_elbo = ess * loss + entropy
+    
+    return neg_elbo
 
 
 # def compute_losses(network: nn.Module, loss_functions: List[nn.Module], dataset: Dataset,
