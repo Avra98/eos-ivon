@@ -2,7 +2,7 @@
 
 This repository contains source code for experimenting Edge of stability behaviour for IVON.
 
-![](https://www.cs.cmu.edu/~jeremiac/gd.gif)
+
 
 The structure of this README is:
 1. [Preliminaries](#anchors-in-markdown)
