@@ -6,6 +6,18 @@ RESULTS/
 DATASETS/
 output/
 Python-3.8.10/
+figures/
+final_figures/
+ivon_actual/
+ivon_actual_cifarwhole/
+ivon_sharp/
+ivon_sharp_correct/
+ivon_sharp_correct-2/
+ivon_sharp_correct-3diff/
+ivon_sharp_correct-alphas/
+ivon_student/
+regression_results/
 Python-3.8.10.tgz
+
 
 
