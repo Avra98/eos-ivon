@@ -21,5 +21,6 @@ Python-3.8.10.tgz
 arxiv_figures/
 training_logs/
 plot_scripts/
+quad_converge_old.py/
 
 
