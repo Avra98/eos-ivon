@@ -1,2 +1,0 @@
-device: cuda:5
-output directory: RESULTS/mnist-whole/resnet32/seed_0/ce/ivon/lr_0.1_h0_0.1_post_10_ivon
