@@ -2,7 +2,7 @@
 # Custom ignores
 training_logs/
 paper_figures/
-RESULTS/
+
 DATASETS/
 output/
 Python-3.8.10/
@@ -39,3 +39,6 @@ range_ivon_stability.py
 quadratic.py
 t_student.py
 welford.py
+
+
+RESULTS/
