@@ -30,3 +30,7 @@ To run EOS dynamics for fixed covariance IVON run
 ```
 python src/gd.py --dataset="cifar10-10k" --arch="fc-tanh"  --loss="mse"  --lr=0.05 -max_steps=10000 --neigs=2  --eig_freq=50 --opt="ivon" --beta2=1.0 --h0=0.7 
 ```
+
+### Acknowledgement
+
+This repository is built on top of [this implementation](https://github.com/locuslab/edge-of-stability), which is based on the paper [*Gradient Descent on Neural Networks Typically Occurs at the Edge of Stability](https://openreview.net/forum?id=jh-rTtvkGeM).
