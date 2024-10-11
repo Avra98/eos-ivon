@@ -104,21 +104,52 @@ def compute_losses(network: nn.Module, loss_functions: List[nn.Module], dataset:
     return losses
 
 
+def compute_posterior_loss(optimizer, ess, network: torch.nn.Module, loss_functions: List[torch.nn.Module], dataset: Dataset,
+                           batch_size: int = DEFAULT_PHYS_BS, device: torch.device = torch.device('cpu'), samp=100):
+    # Extract the Hessian and compute the variance for each parameter
+    hess = optimizer.state_dict()['param_groups'][0]['hess']
+    var = (1 / ess) * (1 / hess)
+    ex_loss = 0.0
+    # Store original parameters to restore after adding noise
+    original_params = parameters_to_vector(network.parameters()).clone()
+
+    for _ in range(samp):
+        with torch.no_grad():
+            index = 0
+            for param in network.parameters():
+                param_shape = param.shape
+                param_var = var[index:index + param.numel()].view(param_shape)
+                index += param.numel()
+                noise = torch.randn_like(param) * (param_var.sqrt())
+                param.data = original_params[index - param.numel():index].view(param_shape) + noise  # Add noise to original params
+
+            loss = compute_losses(network, loss_functions, dataset, batch_size, device)
+        #print("loss_sample is",loss[0])
+        ex_loss += loss[0] / samp
+        vector_to_parameters(original_params, network.parameters())
+
+    return ex_loss    
+
+
 
 def compute_neg_elbo(optimizer, ess, network: torch.nn.Module, loss_functions: List[torch.nn.Module], dataset: Dataset,
                      batch_size: int = DEFAULT_PHYS_BS, device: torch.device = torch.device('cpu')):
-    """Compute negative ELBO (evidence lower bound) over a dataset, with data and model moved to the specified device."""
     
-    # Compute loss
-    loss = compute_losses(network, loss_functions, dataset, batch_size, device)
-    # Extract Hessian and number of parameters
+    loss = compute_posterior_loss(optimizer, ess, network, loss_functions, dataset,
+                    batch_size, device,samp=100)
+    print("average loss is",loss)
     hess = optimizer.state_dict()['param_groups'][0]['hess']
-    d = len(parameters_to_vector(network.parameters()))  # number of model parameters
+    d = len(parameters_to_vector(network.parameters()))  
+    if not isinstance(ess, torch.Tensor):
+        ess = torch.tensor(ess, device=device)
     
-    entropy = (d/2) * (1 + torch.log(2 * torch.pi)) + 0.5 * torch.sum(torch.log(1 / ess * (1 / hess)))
+    if not isinstance(hess, torch.Tensor):
+        hess = torch.tensor(hess, device=device)
+    
+    entropy = (d / 2) * (1 + torch.log(2 * torch.tensor(torch.pi))) + 0.5 * torch.sum(torch.log((1 / ess) * (1 / hess)))
 
-    # Compute the negative ELBO
-    neg_elbo = ess * loss + entropy
+    loss = torch.tensor(loss, device=device) if not isinstance(loss, torch.Tensor) else loss
+    neg_elbo = ess * loss - entropy
     
     return neg_elbo
 

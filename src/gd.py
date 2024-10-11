@@ -15,7 +15,7 @@ from archs import load_architecture
 from utilities import get_gd_optimizer, get_gd_directory, get_loss_and_acc, compute_losses, \
     save_files, save_files_final, get_hessian_eigenvalues, iterate_dataset, plot_singular_values, initialize_storage, \
     store_singular_values, initialize_subspace_distances, store_singular_values_and_subspace_distance, compute_grad_h_grad, second_order_approx, \
-    get_preconditioned_hessian_eigenvalues
+    get_preconditioned_hessian_eigenvalues, compute_neg_elbo
 from data import load_dataset, take_first, DATASETS
 
 
@@ -26,18 +26,6 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
          post_samples: int =10, ad_noise: float= 1e-6,  weight_decay: float = 0.0, device_id: int = 1):
     
     device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
-    
-    # def initialize_cuda(device_id=device):
-    #     if torch.cuda.is_available():
-    #         torch.cuda.set_device(device_id)
-    #         device = torch.device(f"cuda:{device_id}")
-    #         torch.cuda.init()
-    #         # Force initialization
-    #         _ = torch.tensor([0.0], device=device)
-    #         torch.cuda.synchronize()
-    #         return device
-    #     else:
-    #         raise RuntimeError("CUDA is not available")
 
     # device = initialize_cuda()
     print(f"device: {device}")
@@ -45,9 +33,7 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
     print(f"output directory: {directory}")
     makedirs(directory, exist_ok=True)
 
-    ## torch load singular value storage
-    # singular_value_storage = torch.load(f"{directory}/singular_value_storage")
-    # print("singular_value_storage loaded: ", singular_value_storage)
+
     train_dataset, test_dataset = load_dataset(dataset, loss, device)
     abridged_train = take_first(train_dataset, abridged_size, device)
 
@@ -55,8 +41,6 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
 
     torch.manual_seed(seed)
     network = load_architecture(arch_id, dataset).to(device)
-    # singular_value_storage = initialize_storage(network)
-    # subspace_distances = initialize_subspace_distances(network)
 
     projectors = torch.randn(nproj, len(parameters_to_vector(network.parameters())))
 
@@ -69,6 +53,7 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
         torch.zeros(max_steps), torch.zeros(max_steps), torch.zeros(max_steps), torch.zeros(max_steps)
     iterates = torch.zeros(max_steps // iterate_freq if iterate_freq > 0 else 0, len(projectors))
     eigs = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
+    neg_elbo = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0)
     pre_eigs = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
     scaled_losses = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, device=device)
     rhs_values = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, device=device)
@@ -83,8 +68,11 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
         if eig_freq != -1 and step % eig_freq == 0 and step !=0:
             eigs[step // eig_freq, :] = get_hessian_eigenvalues(network, loss_fn, abridged_train, neigs=neigs,
                                                                   physical_batch_size=physical_batch_size, device=device )
-            #pre_eigs[step // eig_freq, :] = get_preconditioned_hessian_eigenvalues(network, loss_fn, abridged_train, optimizer, neigs=neigs, device=device)
-            print("eigenvalues: ", eigs[step//eig_freq, :])
+            # #pre_eigs[step // eig_freq, :] = get_preconditioned_hessian_eigenvalues(network, loss_fn, abridged_train, optimizer, neigs=neigs, device=device)
+            # print("eigenvalues: ", eigs[step//eig_freq, :])
+            neg_elbo[step // eig_freq] = compute_neg_elbo(optimizer, ess, network, [loss_fn, acc_fn], train_dataset, 
+                                                            batch_size=physical_batch_size, device=device )
+            print(("neg_elbo:", neg_elbo[step//eig_freq]))
             #print("preconditioned eigenvalues",pre_eigs[step // eig_freq, :])
             # if opt=="ivon":
             #     rhs, dot_prod = second_order_approx(network, loss_fn,train_dataset, avg_grad_noisy, physical_batch_size,lr,device)
@@ -163,11 +151,6 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
     if save_model:
         torch.save(network.state_dict(), f"{directory}/snapshot_final")
 
-    ## torch save the variable singular_value_storage in a directory
-    # torch.save(singular_value_storage, f"{directory}/singular_value_storage")
-    # torch.save(subspace_distances, f"{directory}/subspace_distances")
-
-    # plot_singular_values(singular_value_storage, directory)    
 
 
 if __name__ == "__main__":
