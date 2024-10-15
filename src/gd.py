@@ -68,21 +68,23 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
         if eig_freq != -1 and step % eig_freq == 0 and step !=0:
             eigs[step // eig_freq, :] = get_hessian_eigenvalues(network, loss_fn, abridged_train, neigs=neigs,
                                                                   physical_batch_size=physical_batch_size, device=device )
-            # #pre_eigs[step // eig_freq, :] = get_preconditioned_hessian_eigenvalues(network, loss_fn, abridged_train, optimizer, neigs=neigs, device=device)
-            # print("eigenvalues: ", eigs[step//eig_freq, :])
-            neg_elbo[step // eig_freq] = compute_neg_elbo(optimizer, ess, network, [loss_fn, acc_fn], train_dataset, 
-                                                            batch_size=physical_batch_size, device=device )
-            print(("neg_elbo:", neg_elbo[step//eig_freq]))
-            #print("preconditioned eigenvalues",pre_eigs[step // eig_freq, :])
+            pre_eigs[step // eig_freq, :] = get_preconditioned_hessian_eigenvalues(network, loss_fn, abridged_train, optimizer, neigs=neigs, device=device)
+            print("eigenvalues: ", eigs[step//eig_freq, :])
+            if opt=="ivon":
+                neg_elbo[step // eig_freq] = compute_neg_elbo(optimizer, ess,weight_decay, network, [loss_fn, acc_fn], train_dataset, 
+                                                                batch_size=physical_batch_size, device=device )
+                print(("neg_elbo:", neg_elbo[step//eig_freq]))
+                hess = optimizer.state_dict()['param_groups'][0]['hess']
+                print("hess item is",hess.mean().item())
+            print("preconditioned eigenvalues",pre_eigs[step // eig_freq, :])
             # if opt=="ivon":
             #     rhs, dot_prod = second_order_approx(network, loss_fn,train_dataset, avg_grad_noisy, physical_batch_size,lr,device)
             #     scaled_loss = (train_loss[step] - train_loss[step-1])/(dot_prod)
             #     print("scaled loss and rhs are", scaled_loss, rhs)
             #     scaled_losses[step // eig_freq] = scaled_loss
             #     rhs_values[step // eig_freq] = rhs
-            if opt=="ivon":
-                hess = optimizer.state_dict()['param_groups'][0]['hess']
-                print("hess item is",hess.mean().item())
+            
+
             
 
         if iterate_freq != -1 and step % iterate_freq == 0:
@@ -91,7 +93,8 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
         if save_freq != -1 and step % save_freq == 0:
             save_files(directory, [("eigs", eigs[:step // eig_freq]), ("iterates", iterates[:step // iterate_freq]),
                                 ("train_loss", train_loss[:step]), ("test_loss", test_loss[:step]),
-                                #("pre-eigs", pre_eigs[:step // eig_freq]),
+                                ("neg-elbo", neg_elbo[:step // eig_freq]),
+                                ("pre-eigs", pre_eigs[:step // eig_freq]),
                                 ("train_acc", train_acc[:step]), ("test_acc", test_acc[:step])])
                                 # ("scaled_losses", scaled_losses[:step // eig_freq]),
                                 # ("rhs_values", rhs_values[:step // eig_freq])])
@@ -144,7 +147,8 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
 
     save_files_final(directory,
                      [("eigs", eigs[:(step + 1) // eig_freq]), ("iterates", iterates[:(step + 1) // iterate_freq]),
-                      #("pre-eigs", pre_eigs[:step // eig_freq]),
+                      ("pre-eigs", pre_eigs[:step // eig_freq]),
+                      ("neg-elbo", neg_elbo[:step // eig_freq]),
                       ("train_loss", train_loss[:step + 1]), ("test_loss", test_loss[:step + 1]),
                       ("train_acc", train_acc[:step + 1]), ("test_acc", test_acc[:step + 1])])
                       #("scaled_losses",scaled_losses[:(step + 1) // eig_freq]),("rhs_values",rhs_values[:(step + 1) // eig_freq])])
@@ -158,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default="cifar10-10k", choices=DATASETS, help="which dataset to train")
     parser.add_argument("--arch_id", type=str, default="fc-tanh", help="which network architectures to train")
     parser.add_argument("--loss", type=str, default="ce", choices=["ce", "mse"], help="which loss function to use")
-    parser.add_argument("--lr", type=float, default=1e-2, help="the learning rate")
+    parser.add_argument("--lr", type=float, default=0.05, help="the learning rate")
     parser.add_argument("--max_steps", type=int, default=10000, help="the maximum number of gradient steps to train for")
     parser.add_argument("--opt", type=str, choices=["gd", "polyak", "nesterov","adam","ivon"],
                         help="which optimization algorithm to use", default="gd")

@@ -104,7 +104,7 @@ def compute_losses(network: nn.Module, loss_functions: List[nn.Module], dataset:
     return losses
 
 
-def compute_posterior_loss(optimizer, ess, network: torch.nn.Module, loss_functions: List[torch.nn.Module], dataset: Dataset,
+def compute_posterior_loss(optimizer, ess, weight_decay, network: torch.nn.Module, loss_functions: List[torch.nn.Module], dataset: Dataset,
                            batch_size: int = DEFAULT_PHYS_BS, device: torch.device = torch.device('cpu'), samp=100):
     # Extract the Hessian and compute the variance for each parameter
     hess = optimizer.state_dict()['param_groups'][0]['hess']
@@ -123,19 +123,26 @@ def compute_posterior_loss(optimizer, ess, network: torch.nn.Module, loss_functi
                 noise = torch.randn_like(param) * (param_var.sqrt())
                 param.data = original_params[index - param.numel():index].view(param_shape) + noise  # Add noise to original params
 
+            # Compute the loss
             loss = compute_losses(network, loss_functions, dataset, batch_size, device)
-        #print("loss_sample is",loss[0])
-        ex_loss += loss[0] / samp
+            
+            # Compute the L2 norm of the network parameters (weight decay term)
+            l2_norm = sum((param ** 2).sum() for param in network.parameters())
+
+            # Add the L2 norm to the loss, scaled by the weight decay factor
+            ex_loss += (loss[0] + (weight_decay/2) * l2_norm) / samp
+
         vector_to_parameters(original_params, network.parameters())
 
-    return ex_loss    
+    return ex_loss
+  
 
 
 
-def compute_neg_elbo(optimizer, ess, network: torch.nn.Module, loss_functions: List[torch.nn.Module], dataset: Dataset,
+def compute_neg_elbo(optimizer, ess,weight_decay, network: torch.nn.Module, loss_functions: List[torch.nn.Module], dataset: Dataset,
                      batch_size: int = DEFAULT_PHYS_BS, device: torch.device = torch.device('cpu')):
     
-    loss = compute_posterior_loss(optimizer, ess, network, loss_functions, dataset,
+    loss = compute_posterior_loss(optimizer, ess, weight_decay, network, loss_functions, dataset,
                     batch_size, device,samp=100)
     print("average loss is",loss)
     hess = optimizer.state_dict()['param_groups'][0]['hess']
