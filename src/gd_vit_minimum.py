@@ -13,12 +13,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from archs import load_architecture
 from data import DATASETS, load_dataset, take_first
-from utilities import (compute_losses, get_hessian_eigenvalues,
+from utilities import (compute_losses, get_hessian_eigenvalues, get_hessian_eigenvalues_trainable,
                        get_loss_and_acc, iterate_dataset)
 
 
 def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
-         abridged_size, seed, weight_decay, device_id):
+         abridged_size, seed, weight_decay, device_id, finetune, hessian):
 
     # Initialization
     device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
@@ -50,24 +50,33 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
         attn_implementation="eager",
     )
 
-    # # Uncomment the following lines to use LoRA
-    # config = LoraConfig(
-    #     r=16,
-    #     lora_alpha=16,
-    #     target_modules=["query", "value"],
-    #     lora_dropout=0.1,
-    #     bias="none",
-    #     modules_to_save=["classifier"],
-    # )
-    # network = get_peft_model(network, config)
+    if finetune == "lora":
+        config = LoraConfig(
+            r=16,
+            lora_alpha=16,
+            target_modules=["query", "value"],
+            lora_dropout=0.1,
+            bias="none",
+            modules_to_save=["classifier"],
+        )
+        network = get_peft_model(network, config)
+    elif finetune == "lastlayer":
+        network.requires_grad_(False)
+        network.classifier.requires_grad_(True)
+    else:
+        assert finetune == "full"
 
-    # # Uncomment the following lines to only tune the last layer
-    # network.requires_grad_(False)
+    ft_group = [p for p in network.parameters() if p.requires_grad]
 
-    network.classifier.requires_grad_(True)
+    if hessian == "full":
+        network.requires_grad_(True)
+
+    print(f"Total #param: {sum(p.numel() for p in network.parameters())}")
+    print(f"Finetune #param: {sum(p.numel() for p in ft_group)}")
+    print(f"grad #param: {sum(p.numel() for p in network.parameters() if p.requires_grad)}")
+
     network = WrapperModel(network)
     network = network.cuda()
-    # ==========  Uncomment the above lines to use ViT  ==========
 
     image_processor = AutoImageProcessor.from_pretrained("WinKawaks/vit-tiny-patch16-224")
     transforms = Compose(
@@ -98,10 +107,11 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
         transform=transforms,
         target_transform=target_transform
     )
+    # ==========  Uncomment the above lines to use ViT  ==========
 
     loss_fn, acc_fn = get_loss_and_acc(loss)
 
-    optimizer = torch.optim.SGD(network.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = torch.optim.SGD(ft_group, lr=lr, weight_decay=weight_decay)
 
     train_loss, test_loss, train_acc, test_acc = \
         torch.zeros(max_steps), torch.zeros(max_steps), torch.zeros(max_steps), torch.zeros(max_steps)
@@ -109,9 +119,13 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
 
     for step in range(0, max_steps):
 
-        if eig_freq != -1 and step % eig_freq == 0 and step > 0:
-            eigs[step // eig_freq, :] = get_hessian_eigenvalues(network, loss_fn, abridged_train, neigs=neigs,
-                                                                  physical_batch_size=physical_batch_size, device=device )
+        if eig_freq != -1 and step % eig_freq == 0 and step >= 0:
+            if hessian == "full":
+                eigs[step // eig_freq, :] = get_hessian_eigenvalues(network, loss_fn, abridged_train, neigs=neigs,
+                                                        physical_batch_size=physical_batch_size, device=device )
+            elif hessian == "sub":
+                eigs[step // eig_freq, :] = get_hessian_eigenvalues_trainable(network, loss_fn, abridged_train, neigs=neigs,
+                                                        physical_batch_size=physical_batch_size, device=device )
             print("eigenvalues: ", eigs[step//eig_freq, :])
 
         if step % 10 == 0:
@@ -149,9 +163,11 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", type=float, default=0.0,
                         help="weight decay")
     parser.add_argument("--device_id", type=int, default=1, help="ID of the GPU to use")
+    parser.add_argument("--finetune", type=str, default="full", choices=["full", "lora", "lastlayer"])
+    parser.add_argument("--hessian", type=str, default="full", choices=["full", "sub"])
     args = parser.parse_args()
 
     main(dataset=args.dataset, arch_id=args.arch_id, loss=args.loss, lr=args.lr, max_steps=args.max_steps,
          neigs=args.neigs, physical_batch_size=args.physical_batch_size, eig_freq=args.eig_freq,
-         abridged_size=args.abridged_size,
+         abridged_size=args.abridged_size, finetune=args.finetune, hessian=args.hessian,
          seed=args.seed, weight_decay=args.weight_decay, device_id=args.device_id)
