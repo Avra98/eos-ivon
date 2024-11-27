@@ -1,24 +1,38 @@
 import argparse
+import math
 import os
 import sys
+from contextlib import nullcontext
 
 import torch
 import torchvision
 from peft import LoraConfig, get_peft_model
-from torchvision.transforms import (Compose, Normalize, RandomHorizontalFlip,
-                                    Resize, ToTensor)
-from transformers import AutoImageProcessor, AutoModelForImageClassification
+from transformers import AutoConfig, AutoModelForImageClassification
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from archs import load_architecture
-from data import DATASETS, load_dataset, take_first
-from utilities import (compute_losses, get_hessian_eigenvalues, get_hessian_eigenvalues_trainable,
-                       get_loss_and_acc, iterate_dataset)
+from ivon._ivon import IVON
+from utilities_vit import get_hessian_eigenvalues, get_loss_and_acc
 
 
-def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
-         abridged_size, seed, weight_decay, device_id, finetune, hessian):
+def evaluate(network, data, loss_fn, target, batch_size):
+    network.eval()
+    with torch.no_grad():
+        chunk_num = math.ceil(len(data) / batch_size)
+        loss = 0
+        correct = 0
+        for (X, y) in zip(data.chunk(chunk_num), target.chunk(chunk_num)):
+            preds = network(X)
+            loss += loss_fn(preds, y).item() / len(data)
+            if target.dim() == 1:   # CE
+                correct += (preds.argmax(dim=1) == y).sum().item()
+            elif target.dim() == 2: # MSE
+                correct += (preds.argmax(dim=1) == y.argmax(dim=1)).sum().item()
+    return loss, correct / len(data)
+
+
+def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
+         seed, weight_decay, device_id, finetune, hessian, optimizer, fromscratch):
 
     # Initialization
     device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
@@ -27,12 +41,7 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
-    # Original setting
-    train_dataset, test_dataset = load_dataset(dataset, loss, device)
-    abridged_train = take_first(train_dataset, abridged_size, device)
-    network = load_architecture(arch_id, dataset).to(device)
-
-    # ==========  Uncomment the following lines to use ViT  ==========
+    # Workaround for HF transformers
     class WrapperModel(torch.nn.Module):
         def __init__(self, model):
             super().__init__()
@@ -41,16 +50,27 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
         def forward(self, x):
             return self.model(x).logits
 
-    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-    network = AutoModelForImageClassification.from_pretrained(
-        "WinKawaks/vit-tiny-patch16-224",
-        label2id={label: i for i, label in enumerate(classes)},
-        id2label=dict(enumerate(classes)),
-        ignore_mismatched_sizes=True,
-        attn_implementation="eager",
-    )
+    
+    if fromscratch:
+        config = AutoConfig.from_pretrained("WinKawaks/vit-tiny-patch16-224")
+        config.num_labels = 10
+        config.image_size = 32
+        # patch size and numbers of layers can be modified here
+        config.patch_size = 8
+        config.num_hidden_layers = 2
+        network = AutoModelForImageClassification.from_config(
+            config, attn_implementation="eager"
+        )
+    else:
+        network = AutoModelForImageClassification.from_pretrained(
+            "WinKawaks/vit-tiny-patch16-224",
+            num_labels=10,
+            ignore_mismatched_sizes=True,
+            attn_implementation="eager",
+        )
 
     if finetune == "lora":
+        # LoRA config can be modified here
         config = LoraConfig(
             r=16,
             lora_alpha=16,
@@ -78,96 +98,98 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
     network = WrapperModel(network)
     network = network.cuda()
 
-    image_processor = AutoImageProcessor.from_pretrained("WinKawaks/vit-tiny-patch16-224")
-    transforms = Compose(
-        [
-            Resize((image_processor.size["height"], image_processor.size["width"])),
-            RandomHorizontalFlip(),
-            ToTensor(),
-            Normalize(mean=image_processor.image_mean, std=image_processor.image_std),
-        ]
-    )
-    if args.loss == "ce":
-        target_transform = None
-    elif args.loss == "mse":
-        target_transform = Compose(
-            [torch.tensor, lambda x: torch.nn.functional.one_hot(x, num_classes=10)]
-        )
     train_dataset = torchvision.datasets.CIFAR10(
-        root="/home/cong/codes/eos-ivon/datasets",
-        train=True,
-        transform=transforms,
-        target_transform=target_transform,
+        root="/home/cong/codes/eos-ivon/datasets", train=True
     )
-    train_dataset.data = train_dataset.data[:10000]
-    abridged_train = train_dataset
     test_dataset = torchvision.datasets.CIFAR10(
-        root="/home/cong/codes/eos-ivon/datasets",
-        train=False,
-        transform=transforms,
-        target_transform=target_transform
+        root="/home/cong/codes/eos-ivon/datasets", train=False
     )
-    # ==========  Uncomment the above lines to use ViT  ==========
+
+    # Training data and label
+    train_data = (train_dataset.data - 127.5) / 127.5
+    train_data = torch.tensor(train_data, dtype=torch.float32, device=device).permute(0, 3, 1, 2)
+    train_label = torch.tensor(train_dataset.targets, device=device)
+    test_data = (test_dataset.data - 127.5) / 127.5
+    test_data = torch.tensor(test_data, dtype=torch.float32, device=device).permute(0, 3, 1, 2)
+    test_label = torch.tensor(test_dataset.targets, device=device)
+    if loss == "mse":
+        train_label = torch.nn.functional.one_hot(train_label, num_classes=10)
+        test_label = torch.nn.functional.one_hot(test_label, num_classes=10)
 
     loss_fn, acc_fn = get_loss_and_acc(loss)
 
-    optimizer = torch.optim.SGD(ft_group, lr=lr, weight_decay=weight_decay)
+    if optimizer == "gd":
+        optimizer = torch.optim.SGD(ft_group, lr=lr, weight_decay=weight_decay)
+        # optimizer = torch.optim.Adam(ft_group, lr=lr, weight_decay=weight_decay)
+    elif optimizer == "ivon":
+        # IVON hyperparameters can be modified here
+        hess_init = 0.7
+        beta2 = 1
+        ess = 1e6
+        print("Hessian init: ", hess_init)
+        print("beta2: ", beta2)
+        print("ess: ", ess)
+        optimizer = IVON(ft_group, lr=lr, ess=ess, weight_decay=weight_decay, mc_samples=1, beta1=0, beta2=beta2, hess_init=hess_init, rescale_lr=True, alpha=10)
 
-    train_loss, test_loss, train_acc, test_acc = \
-        torch.zeros(max_steps), torch.zeros(max_steps), torch.zeros(max_steps), torch.zeros(max_steps)
     eigs = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
 
     for step in range(0, max_steps):
 
         if eig_freq != -1 and step % eig_freq == 0 and step >= 0:
-            if hessian == "full":
-                eigs[step // eig_freq, :] = get_hessian_eigenvalues(network, loss_fn, abridged_train, neigs=neigs,
-                                                        physical_batch_size=physical_batch_size, device=device )
-            elif hessian == "sub":
-                eigs[step // eig_freq, :] = get_hessian_eigenvalues_trainable(network, loss_fn, abridged_train, neigs=neigs,
-                                                        physical_batch_size=physical_batch_size, device=device )
+            trainable_only = (hessian == "sub")
+            eigs[step // eig_freq, :] = get_hessian_eigenvalues(
+                network, loss_fn, train_data, train_label, trainable_only,
+                neigs=neigs, physical_batch_size=physical_batch_size, device=device
+            )
             print("eigenvalues: ", eigs[step//eig_freq, :])
 
         if step % 10 == 0:
-            train_loss[step], train_acc[step] = compute_losses(network, [loss_fn, acc_fn], train_dataset,
-                                                           physical_batch_size, device)
-            test_loss[step], test_acc[step] = compute_losses(network, [loss_fn, acc_fn], test_dataset, physical_batch_size, device)
-            print(f"{step}\t{train_loss[step]:.3f}\t{train_acc[step]:.3f}\t{test_loss[step]:.3f}\t{test_acc[step]:.3f}")
+            train_loss, train_acc = evaluate(
+                network, train_data, loss_fn, train_label, physical_batch_size
+            )
+            test_loss, test_acc = evaluate(
+                network, test_data, loss_fn, test_label, physical_batch_size
+            )
+            print(f"{step}\t{train_loss:.3f}\t{train_acc:.3f}\t{test_loss:.3f}\t{test_acc:.3f}", flush=True)
 
         optimizer.zero_grad()
         loss_sum = 0
-        for (X, y) in iterate_dataset(train_dataset, physical_batch_size):
-            loss = loss_fn(network(X.to(device)), y.to(device)) / len(train_dataset)
-            loss_sum += loss
-            loss.backward()
+        chunk_num = math.ceil(len(train_data) / physical_batch_size)
+        network.train()
+        with optimizer.sampled_params(train=True) if optimizer.__class__.__name__ == "IVON" else nullcontext():
+            for (X, y) in zip(train_data.chunk(chunk_num), train_label.chunk(chunk_num)):
+                output = network(X)
+                loss = loss_fn(output, y) / len(train_dataset)
+                loss_sum += loss
+                loss.backward()
         print(f"Step {step}, loss: {loss_sum:.3f}")
         optimizer.step()
 
 
 if __name__ == "__main__":
+    # Use full CIFAR10 dataset instead of the 10k subset, and a two-layer transformer
     parser = argparse.ArgumentParser(description="Train using gradient descent.")
-    parser.add_argument("--dataset", type=str, default="cifar10-10k", choices=DATASETS, help="which dataset to train")
-    parser.add_argument("--arch_id", type=str, default="fc-tanh", help="which network architectures to train")
     parser.add_argument("--loss", type=str, default="ce", choices=["ce", "mse"], help="which loss function to use")
     parser.add_argument("--lr", type=float, default=1e-2, help="the learning rate")
     parser.add_argument("--max_steps", type=int, default=10000, help="the maximum number of gradient steps to train for")
     parser.add_argument("--seed", type=int, help="the random seed used when initializing the network weights",
                         default=0)
     parser.add_argument("--physical_batch_size", type=int,
-                        help="the maximum number of examples that we try to fit on the GPU at once", default=500)
+                        help="the maximum number of examples that we try to fit on the GPU at once", default=10000)
     parser.add_argument("--neigs", type=int, help="the number of top eigenvalues to compute", default=2)
     parser.add_argument("--eig_freq", type=int, default=-1,
                         help="the frequency at which we compute the top Hessian eigenvalues (-1 means never)")
-    parser.add_argument("--abridged_size", type=int, default=50000,
-                        help="when computing top Hessian eigenvalues, use an abridged dataset of this size")
     parser.add_argument("--weight_decay", type=float, default=0.0,
                         help="weight decay")
     parser.add_argument("--device_id", type=int, default=1, help="ID of the GPU to use")
     parser.add_argument("--finetune", type=str, default="full", choices=["full", "lora", "lastlayer"])
     parser.add_argument("--hessian", type=str, default="full", choices=["full", "sub"])
+    parser.add_argument("--optimizer", type=str, default="gd", choices=["gd", "ivon"])
+    parser.add_argument("--fromscratch", action="store_true")
     args = parser.parse_args()
 
-    main(dataset=args.dataset, arch_id=args.arch_id, loss=args.loss, lr=args.lr, max_steps=args.max_steps,
+    main(loss=args.loss, lr=args.lr, max_steps=args.max_steps,
          neigs=args.neigs, physical_batch_size=args.physical_batch_size, eig_freq=args.eig_freq,
-         abridged_size=args.abridged_size, finetune=args.finetune, hessian=args.hessian,
-         seed=args.seed, weight_decay=args.weight_decay, device_id=args.device_id)
+         finetune=args.finetune, hessian=args.hessian,
+         seed=args.seed, weight_decay=args.weight_decay, device_id=args.device_id,
+         optimizer=args.optimizer, fromscratch=args.fromscratch)
