@@ -20,10 +20,6 @@ from torch.autograd import grad
 DEFAULT_PHYS_BS = 1000
 
 
-def get_param_with_grad(net):
-    return [param for param in net.parameters() if param.requires_grad]
-
-
 def get_gd_directory(dataset: str, lr: float, arch_id: str, seed: int, opt: str, loss: str,
                      beta: float = None, h0: float = None, alpha: int=None, post_samples: int = None,
                     beta2: float=None, ess: float=None, ad_noise: float=None, weight_decay: float =None,batch_size: int = None) -> str:
@@ -202,21 +198,6 @@ def compute_hvp(network: nn.Module, loss_fn: nn.Module, dataset: Dataset,
         hvp += parameters_to_vector(grads)
     return hvp
 
-def compute_hvp_trainable(network: nn.Module, loss_fn: nn.Module, dataset: Dataset, 
-                vector: Tensor, device: str, physical_batch_size: int = DEFAULT_PHYS_BS):
-    """Compute a Hessian-vector product with specified device."""
-    n = len(dataset)
-    hvp = torch.zeros_like(vector, device=device)
-    for (X, y) in iterate_dataset(dataset, physical_batch_size):
-        X, y = X.to(device), y.to(device)
-        loss = loss_fn(network(X), y) / n
-        grads = torch.autograd.grad(loss, inputs=get_param_with_grad(network), create_graph=True)
-        dot = parameters_to_vector(grads).mul(vector).sum()
-        grads = [g.contiguous() for g in torch.autograd.grad(dot, get_param_with_grad(network), retain_graph=True)]
-        hvp += parameters_to_vector(grads)
-    return hvp
-
-
 def lanczos(matrix_vector, dim: int, neigs: int, device: str):
     """Invoke the Lanczos algorithm to compute the leading eigenvalues and eigenvectors."""
     def mv(vec: np.ndarray):
@@ -245,14 +226,6 @@ def get_hessian_eigenvalues(network: nn.Module, loss_fn: nn.Module, dataset: Dat
     return evals
 
 
-def get_hessian_eigenvalues_trainable(network: nn.Module, loss_fn: nn.Module, dataset: Dataset,
-                            neigs=6, physical_batch_size=1000, device='cuda'):
-    """Compute the leading Hessian eigenvalues using a specified device."""
-    hvp_delta = lambda delta: compute_hvp_trainable(network, loss_fn, dataset, 
-                                          delta, device, physical_batch_size).detach()
-    nparams = len(parameters_to_vector(get_param_with_grad(network)).to(device))
-    evals, evecs = lanczos(hvp_delta, nparams, neigs, device)
-    return evals
 
 def compute_grad_h_grad(network: torch.nn.Module, loss_fn: torch.nn.Module,
                         dataset: torch.utils.data.Dataset, avg_grad: torch.Tensor,
