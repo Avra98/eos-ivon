@@ -65,6 +65,7 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
     # network.requires_grad_(False)
 
     network.classifier.requires_grad_(True)
+    
     network = WrapperModel(network)
     network = network.cuda()
     # ==========  Uncomment the above lines to use ViT  ==========
@@ -78,27 +79,31 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
             Normalize(mean=image_processor.image_mean, std=image_processor.image_std),
         ]
     )
+    print(image_processor.size["height"])
     if args.loss == "ce":
         target_transform = None
     elif args.loss == "mse":
         target_transform = Compose(
             [torch.tensor, lambda x: torch.nn.functional.one_hot(x, num_classes=10)]
         )
+        
     train_dataset = torchvision.datasets.CIFAR10(
-        root="/home/cong/codes/eos-ivon/datasets",
+        root="edge-of-stability/DATASETS",
         train=True,
         transform=transforms,
         target_transform=target_transform,
+        download=True
     )
     train_dataset.data = train_dataset.data[:10000]
     abridged_train = train_dataset
     test_dataset = torchvision.datasets.CIFAR10(
-        root="/home/cong/codes/eos-ivon/datasets",
+        root="edge-of-stability/DATASETS",
         train=False,
         transform=transforms,
-        target_transform=target_transform
+        target_transform=target_transform,
+        download=True
     )
-
+    #train_dataset, test_dataset = load_dataset(dataset, loss, device)
     loss_fn, acc_fn = get_loss_and_acc(loss)
 
     optimizer = torch.optim.SGD(network.parameters(), lr=lr, weight_decay=weight_decay)
@@ -126,7 +131,7 @@ def main(dataset, arch_id, loss, lr, max_steps, neigs, physical_batch_size, eig_
             loss = loss_fn(network(X.to(device)), y.to(device)) / len(train_dataset)
             loss_sum += loss
             loss.backward()
-        print(f"Step {step}, loss: {loss_sum:.3f}")
+        #print(f"Step {step}, loss: {loss_sum:.3f}")
         optimizer.step()
 
 
@@ -134,7 +139,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train using gradient descent.")
     parser.add_argument("--dataset", type=str, default="cifar10-10k", choices=DATASETS, help="which dataset to train")
     parser.add_argument("--arch_id", type=str, default="fc-tanh", help="which network architectures to train")
-    parser.add_argument("--loss", type=str, default="ce", choices=["ce", "mse"], help="which loss function to use")
+    parser.add_argument("--loss", type=str, default="mse", choices=["ce", "mse"], help="which loss function to use")
     parser.add_argument("--lr", type=float, default=1e-2, help="the learning rate")
     parser.add_argument("--max_steps", type=int, default=10000, help="the maximum number of gradient steps to train for")
     parser.add_argument("--seed", type=int, help="the random seed used when initializing the network weights",

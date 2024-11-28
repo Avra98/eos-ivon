@@ -25,7 +25,8 @@ def get_param_with_grad(net):
 
 
 def get_gd_directory(dataset: str, lr: float, arch_id: str, seed: int, opt: str, loss: str,
-                     beta: float = None, h0: float = None, alpha: int=None, post_samples: int = None, beta2: float=None, ess: float=None, ad_noise: float=None, weight_decay: float =None) -> str:
+                     beta: float = None, h0: float = None, alpha: int=None, post_samples: int = None,
+                    beta2: float=None, ess: float=None, ad_noise: float=None, weight_decay: float =None,batch_size: int = None) -> str:
     """Return the directory in which the results should be saved."""
     results_dir = os.environ["RESULTS"]
     directory = f"{results_dir}/{dataset}/{arch_id}/seed_{seed}/{loss}/{opt}"
@@ -37,7 +38,7 @@ def get_gd_directory(dataset: str, lr: float, arch_id: str, seed: int, opt: str,
     elif opt == "adam":
         return f"{directory}/lr_{lr}_adam_noise_{ad_noise}_beta_{beta}_beta2_{beta2}"
     elif opt == "ivon":
-        return f"{directory}/lr_{lr}/h0_{h0}/ess_{ess}/post_{post_samples}/beta2_{beta2}/beta_{beta}_alpha_{alpha}_ivon_wd_{weight_decay}"
+        return f"{directory}/lr_{lr}/h0_{h0}/ess_{ess}/post_{post_samples}/beta2_{beta2}/beta_{beta}_alpha_{alpha}_ivon_wd_{weight_decay}_bs_{batch_size}"
     else:
         raise ValueError(f"Unknown optimizer: {opt}")
 
@@ -67,7 +68,8 @@ def get_gd_optimizer(parameters, opt: str, lr: float, momentum: float, train_sam
         return CustomAdam(parameters, lr=lr,betas=(momentum,beta2))
     elif opt == "ivon":
         #print("train_samp is",train_samp)
-        return IVON(parameters, lr=lr, ess= ess, weight_decay=weight_decay,mc_samples=train_samp, beta1=momentum,beta2=beta2, hess_init=h0,rescale_lr=False, alpha=alpha)
+        return IVON(parameters, lr=lr, ess= ess, weight_decay=weight_decay,mc_samples=train_samp, 
+        beta1=momentum,beta2=beta2, hess_init=h0,rescale_lr=True, alpha=alpha)
 
 
 def save_files(directory: str, arrays: List[Tuple[str, torch.Tensor]]):

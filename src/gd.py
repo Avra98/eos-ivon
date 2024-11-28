@@ -29,7 +29,7 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
 
     # device = initialize_cuda()
     print(f"device: {device}")
-    directory = get_gd_directory(dataset, lr, arch_id, seed, opt, loss, beta, h0, alpha, post_samples,beta2,ess,ad_noise,weight_decay)
+    directory = get_gd_directory(dataset, lr, arch_id, seed, opt, loss, beta, h0, alpha, post_samples,beta2,ess,ad_noise,weight_decay,physical_batch_size)
     print(f"output directory: {directory}")
     makedirs(directory, exist_ok=True)
 
@@ -43,7 +43,6 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
     network = load_architecture(arch_id, dataset).to(device)
 
     projectors = torch.randn(nproj, len(parameters_to_vector(network.parameters())))
-
 
     optimizer = get_gd_optimizer(network.parameters(), opt, lr, beta, post_samples,beta2,h0,alpha,ess,weight_decay)
     print("optimizer is", type(optimizer).__name__)
@@ -105,23 +104,27 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
             break
         
         if opt=="ivon":
-            # optimizer.zero_grad()
-            # for (X, y) in iterate_dataset(train_dataset, physical_batch_size):
-            #     for _ in range(post_samples):
-            #         with optimizer.sampled_params(train=True):                   
+
+            ## ivon-sgd
+            optimizer.zero_grad()
+            for (X, y) in iterate_dataset(train_dataset, physical_batch_size):
+                for _ in range(post_samples):
+                    with optimizer.sampled_params(train=True):                   
+                        loss = loss_fn(network(X.to(device)), y.to(device)) / physical_batch_size
+                        loss.backward()
+                optimizer.step()
+
+            ## ivon-gd
+            # optimizer.zero_grad()    
+            # for _ in range(post_samples):
+            #     with optimizer.sampled_params(train=True):   
+            #         optimizer.zero_grad()
+            #         for (X, y) in iterate_dataset(train_dataset, physical_batch_size):                      
             #             loss = loss_fn(network(X.to(device)), y.to(device)) / len(train_dataset)
             #             loss.backward()
+            # # with torch.no_grad():
+            # #     avg_grad_noisy = optimizer.get_avg_grad()           
             # optimizer.step()
-            optimizer.zero_grad()    
-            for _ in range(post_samples):
-                with optimizer.sampled_params(train=True):   
-                    optimizer.zero_grad()
-                    for (X, y) in iterate_dataset(train_dataset, physical_batch_size):                      
-                        loss = loss_fn(network(X.to(device)), y.to(device)) / len(train_dataset)
-                        loss.backward()
-            # with torch.no_grad():
-            #     avg_grad_noisy = optimizer.get_avg_grad()           
-            optimizer.step()
 
 
 
