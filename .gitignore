@@ -22,7 +22,7 @@ arxiv_figures/
 training_logs/
 plot_scripts/
 quad_converge_old.py/
-
+iclr_arxiv/
 ## other files
 
 bash_plt.sh
@@ -43,3 +43,4 @@ welford.py
 
 RESULTS/
 __pycache__
+
