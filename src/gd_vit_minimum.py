@@ -32,7 +32,7 @@ def evaluate(network, data, loss_fn, target, batch_size):
 
 
 def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
-         seed, weight_decay, device_id, finetune, hessian, optimizer, fromscratch):
+         seed, weight_decay, device_id, finetune, hessian, optimizer):
 
     # Initialization
     device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
@@ -51,7 +51,7 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
             return self.model(x).logits
 
     
-    if fromscratch:
+    if finetune is None:
         config = AutoConfig.from_pretrained("WinKawaks/vit-tiny-patch16-224")
         config.num_labels = 10
         config.image_size = 32
@@ -83,8 +83,6 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
     elif finetune == "lastlayer":
         network.requires_grad_(False)
         network.classifier.requires_grad_(True)
-    else:
-        assert finetune == "full"
 
     ft_group = [p for p in network.parameters() if p.requires_grad]
 
@@ -181,15 +179,14 @@ if __name__ == "__main__":
                         help="the frequency at which we compute the top Hessian eigenvalues (-1 means never)")
     parser.add_argument("--weight_decay", type=float, default=0.0,
                         help="weight decay")
-    parser.add_argument("--device_id", type=int, default=1, help="ID of the GPU to use")
-    parser.add_argument("--finetune", type=str, default="full", choices=["full", "lora", "lastlayer"])
+    parser.add_argument("--device_id", type=int, default=0, help="ID of the GPU to use")
+    parser.add_argument("--finetune", type=str, default=None, choices=["full", "lora", "lastlayer"])
     parser.add_argument("--hessian", type=str, default="full", choices=["full", "sub"])
     parser.add_argument("--optimizer", type=str, default="gd", choices=["gd", "ivon"])
-    parser.add_argument("--fromscratch", action="store_true")
     args = parser.parse_args()
 
     main(loss=args.loss, lr=args.lr, max_steps=args.max_steps,
          neigs=args.neigs, physical_batch_size=args.physical_batch_size, eig_freq=args.eig_freq,
          finetune=args.finetune, hessian=args.hessian,
          seed=args.seed, weight_decay=args.weight_decay, device_id=args.device_id,
-         optimizer=args.optimizer, fromscratch=args.fromscratch)
+         optimizer=args.optimizer)
