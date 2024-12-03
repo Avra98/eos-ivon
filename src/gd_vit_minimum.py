@@ -43,11 +43,14 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
 
     # Workaround for HF transformers
     class WrapperModel(torch.nn.Module):
-        def __init__(self, model):
+        def __init__(self, model, finetune):
             super().__init__()
             self.model = model
+            self.finetune = finetune
 
         def forward(self, x):
+            if self.finetune is not None:
+                x = torchvision.transforms.functional.resize(x, 224)
             return self.model(x).logits
 
     
@@ -93,7 +96,7 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
     print(f"Finetune #param: {sum(p.numel() for p in ft_group)}")
     print(f"grad #param: {sum(p.numel() for p in network.parameters() if p.requires_grad)}")
 
-    network = WrapperModel(network)
+    network = WrapperModel(network, finetune=finetune)
     network = network.cuda()
 
     train_dataset = torchvision.datasets.CIFAR10(
