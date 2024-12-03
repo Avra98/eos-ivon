@@ -71,21 +71,20 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
             ignore_mismatched_sizes=True,
             attn_implementation="eager",
         )
-
-    if finetune == "lora":
-        # LoRA config can be modified here
-        config = LoraConfig(
-            r=16,
-            lora_alpha=16,
-            target_modules=["query", "value"],
-            lora_dropout=0.1,
-            bias="none",
-            modules_to_save=["classifier"],
-        )
-        network = get_peft_model(network, config)
-    elif finetune == "lastlayer":
-        network.requires_grad_(False)
-        network.classifier.requires_grad_(True)
+        if finetune == "lora":
+            # LoRA config can be modified here
+            config = LoraConfig(
+                r=16,
+                lora_alpha=16,
+                target_modules=["query", "value"],
+                lora_dropout=0.1,
+                bias="none",
+                modules_to_save=["classifier"],
+            )
+            network = get_peft_model(network, config)
+        elif finetune == "lastlayer":
+            network.requires_grad_(False)
+            network.classifier.requires_grad_(True)
 
     ft_group = [p for p in network.parameters() if p.requires_grad]
 
@@ -99,12 +98,8 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
     network = WrapperModel(network, finetune=finetune)
     network = network.cuda()
 
-    train_dataset = torchvision.datasets.CIFAR10(
-        root="/home/cong/codes/eos-ivon/datasets", train=True
-    )
-    test_dataset = torchvision.datasets.CIFAR10(
-        root="/home/cong/codes/eos-ivon/datasets", train=False
-    )
+    train_dataset = torchvision.datasets.CIFAR10(root="datasets", train=True)
+    test_dataset = torchvision.datasets.CIFAR10(root="datasets", train=False)
 
     # Training data and label
     train_data = (train_dataset.data - 127.5) / 127.5
