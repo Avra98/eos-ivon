@@ -137,7 +137,7 @@ def plot_logs(log_files, labels):
     legend_fontsize = 20
     tick_fontsize = 16
 
-    colors = ['blue', 'orange']
+    colors = ['orange','blue']
     markers = ['o', 's']
     linestyles = ['-', '--']
 

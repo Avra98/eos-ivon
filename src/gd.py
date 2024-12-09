@@ -67,15 +67,15 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
         if eig_freq != -1 and step % eig_freq == 0 and step !=0:
             eigs[step // eig_freq, :] = get_hessian_eigenvalues(network, loss_fn, abridged_train, neigs=neigs,
                                                                   physical_batch_size=physical_batch_size, device=device )
-            pre_eigs[step // eig_freq, :] = get_preconditioned_hessian_eigenvalues(network, loss_fn, abridged_train, optimizer, neigs=neigs, device=device)
+            #pre_eigs[step // eig_freq, :] = get_preconditioned_hessian_eigenvalues(network, loss_fn, abridged_train, optimizer, neigs=neigs, device=device)
             print("eigenvalues: ", eigs[step//eig_freq, :])
-            if opt=="ivon":
-                neg_elbo[step // eig_freq] = compute_neg_elbo(optimizer, ess,weight_decay, network, [loss_fn, acc_fn], train_dataset, 
-                                                                batch_size=physical_batch_size, device=device )
-                print(("neg_elbo:", neg_elbo[step//eig_freq]))
-                hess = optimizer.state_dict()['param_groups'][0]['hess']
-                print("hess item is",hess.mean().item())
-            print("preconditioned eigenvalues",pre_eigs[step // eig_freq, :])
+            # if opt=="ivon":
+            #     neg_elbo[step // eig_freq] = compute_neg_elbo(optimizer, ess,weight_decay, network, [loss_fn, acc_fn], train_dataset, 
+            #                                                     batch_size=physical_batch_size, device=device )
+            #     print(("neg_elbo:", neg_elbo[step//eig_freq]))
+            #     hess = optimizer.state_dict()['param_groups'][0]['hess']
+            #     print("hess item is",hess.mean().item())
+            # print("preconditioned eigenvalues",pre_eigs[step // eig_freq, :])
             # if opt=="ivon":
             #     rhs, dot_prod = second_order_approx(network, loss_fn,train_dataset, avg_grad_noisy, physical_batch_size,lr,device)
             #     scaled_loss = (train_loss[step] - train_loss[step-1])/(dot_prod)
@@ -92,8 +92,8 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
         if save_freq != -1 and step % save_freq == 0:
             save_files(directory, [("eigs", eigs[:step // eig_freq]), ("iterates", iterates[:step // iterate_freq]),
                                 ("train_loss", train_loss[:step]), ("test_loss", test_loss[:step]),
-                                ("neg-elbo", neg_elbo[:step // eig_freq]),
-                                ("pre-eigs", pre_eigs[:step // eig_freq]),
+                                #("neg-elbo", neg_elbo[:step // eig_freq]),
+                                #("pre-eigs", pre_eigs[:step // eig_freq]),
                                 ("train_acc", train_acc[:step]), ("test_acc", test_acc[:step])])
                                 # ("scaled_losses", scaled_losses[:step // eig_freq]),
                                 # ("rhs_values", rhs_values[:step // eig_freq])])
@@ -106,25 +106,25 @@ def main(dataset: str = "cifar10-10k", arch_id: str = "resnet32", loss: str = "c
         if opt=="ivon":
 
             ## ivon-sgd
-            optimizer.zero_grad()
-            for (X, y) in iterate_dataset(train_dataset, physical_batch_size):
-                for _ in range(post_samples):
-                    with optimizer.sampled_params(train=True):                   
-                        loss = loss_fn(network(X.to(device)), y.to(device)) / physical_batch_size
-                        loss.backward()
-                optimizer.step()
+            # optimizer.zero_grad()
+            # for (X, y) in iterate_dataset(train_dataset, physical_batch_size):
+            #     for _ in range(post_samples):
+            #         with optimizer.sampled_params(train=True):                   
+            #             loss = loss_fn(network(X.to(device)), y.to(device)) / physical_batch_size
+            #             loss.backward()
+            #     optimizer.step()
 
             ## ivon-gd
-            # optimizer.zero_grad()    
-            # for _ in range(post_samples):
-            #     with optimizer.sampled_params(train=True):   
-            #         optimizer.zero_grad()
-            #         for (X, y) in iterate_dataset(train_dataset, physical_batch_size):                      
-            #             loss = loss_fn(network(X.to(device)), y.to(device)) / len(train_dataset)
-            #             loss.backward()
-            # # with torch.no_grad():
-            # #     avg_grad_noisy = optimizer.get_avg_grad()           
-            # optimizer.step()
+            optimizer.zero_grad()    
+            for _ in range(post_samples):
+                with optimizer.sampled_params(train=True):   
+                    optimizer.zero_grad()
+                    for (X, y) in iterate_dataset(train_dataset, physical_batch_size):                      
+                        loss = loss_fn(network(X.to(device)), y.to(device)) / len(train_dataset)
+                        loss.backward()
+            # with torch.no_grad():
+            #     avg_grad_noisy = optimizer.get_avg_grad()           
+            optimizer.step()
 
 
 
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train using gradient descent.")
     parser.add_argument("--dataset", type=str, default="cifar10-10k", choices=DATASETS, help="which dataset to train")
     parser.add_argument("--arch_id", type=str, default="fc-tanh", help="which network architectures to train")
-    parser.add_argument("--loss", type=str, default="ce", choices=["ce", "mse"], help="which loss function to use")
+    parser.add_argument("--loss", type=str, default="mse", choices=["ce", "mse"], help="which loss function to use")
     parser.add_argument("--lr", type=float, default=0.05, help="the learning rate")
     parser.add_argument("--max_steps", type=int, default=10000, help="the maximum number of gradient steps to train for")
     parser.add_argument("--opt", type=str, choices=["gd", "polyak", "nesterov","adam","ivon"],

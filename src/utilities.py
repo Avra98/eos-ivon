@@ -34,7 +34,7 @@ def get_gd_directory(dataset: str, lr: float, arch_id: str, seed: int, opt: str,
     elif opt == "adam":
         return f"{directory}/lr_{lr}_adam_noise_{ad_noise}_beta_{beta}_beta2_{beta2}"
     elif opt == "ivon":
-        return f"{directory}/lr_{lr}/h0_{h0}/ess_{ess}/post_{post_samples}/beta2_{beta2}/beta_{beta}_alpha_{alpha}_ivon_wd_{weight_decay}_bs_{batch_size}"
+        return f"{directory}/lr_{lr}/h0_{h0}/ess_{ess}/post_{post_samples}/beta2_{beta2}/alphaonly_{alpha}/beta_{beta}_ivon_wd_{weight_decay}"
     else:
         raise ValueError(f"Unknown optimizer: {opt}")
 
@@ -393,62 +393,6 @@ def store_singular_values(network, storage):
             #print(f"Layer {linear_layer_index + 1} Singular Values: {s.cpu().numpy()}")
 
             linear_layer_index += 1  # Increment only for linear layers
-
-
-def store_singular_values_and_subspace_distance(network, storage, subspace_distances, r=10):
-    linear_layer_index = 0  # Initialize an index to track linear layers specifically
-
-    # Iterate through all modules in the network
-    for layer in network.modules():
-        if isinstance(layer, torch.nn.Linear):
-            # Compute SVD on the weight data of the linear layer
-            u, s, v = torch.svd(layer.weight.data)
-            
-            # Store the singular values in the corresponding sub-list in storage
-            storage[linear_layer_index]['singular_values'].append(s.cpu().numpy())
-            # Store the U matrix in the corresponding sub-list in storage
-            storage[linear_layer_index]['U_matrices'].append(u.cpu().numpy())
-
-            # If this is not the first time step, compute the subspace distance
-            if len(storage[linear_layer_index]['U_matrices']) > 1:
-                U_t = storage[linear_layer_index]['U_matrices'][-1][:, :r]  # Use first r columns
-                U_t1 = storage[linear_layer_index]['U_matrices'][-2][:, :r]  # Get the previous U matrix and use first r columns
-                subspace_distance = np.abs(r - np.linalg.norm(np.dot(U_t.T, U_t1), ord='fro')**2)
-                #print(f"Layer {linear_layer_index + 1} Subspace Distance: {subspace_distance}")
-                subspace_distances[linear_layer_index].append(subspace_distance)
-            else:
-                subspace_distances[linear_layer_index].append(None)  # No previous step to compare
-
-            linear_layer_index += 1  # Increment only for linear layers
-
-def plot_singular_values(storage, output_directory):
-    for i, singular_values in enumerate(storage):
-        if singular_values:  # Check if the list is non-empty
-            all_singular_values = np.stack(singular_values)  # Stack for plotting
-
-            plt.figure(figsize=(12, 6))
-            num_singular_values = all_singular_values.shape[1]  # Total number of singular values
-
-            # Determine indices for top 5 and last 5 singular values
-            indices_top_5 = range(5)
-            indices_last_5 = range(max(0, num_singular_values - 5), num_singular_values)
-
-            # Plot top 5 singular values
-            for idx in indices_top_5:
-                plt.plot(all_singular_values[:, idx], label=f'Singular Value {idx+1}')
-
-            # Plot last 5 singular values
-            for idx in indices_last_5:
-                plt.plot(all_singular_values[:, idx], label=f'Singular Value {idx+1}')
-
-            plt.title(f'Layer {i+1} Singular Value Evolution')
-            plt.xlabel('Iteration')
-            plt.ylabel('Singular Value')
-            plt.legend()
-            plt.savefig(f"{output_directory}/Layer_{i+1}_Singular_Values_Evolution.png")
-            plt.close()
-        else:
-            print(f"Skipping Layer {i+1}: No singular values recorded.")
 
 
 class CustomAdam(Adam):

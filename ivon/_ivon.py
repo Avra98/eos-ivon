@@ -220,19 +220,19 @@ class IVON(torch.optim.Optimizer):
             #print("ess is",group["ess"])
             gnumel = group["numel"]
             #print(group["ess"] ,group["hess"],group["weight_decay"])
-            noise_sample = (
-                torch.randn(gnumel, device=self._device, dtype=self._dtype)
-                / (
-                    group["ess"] * (group["hess"] + group["weight_decay"])
-                ).sqrt()
-            )
-            # tau_sample = torch.tensor(gamma.rvs(a=alpha/2, scale=2/alpha, size=gnumel), device=self._device, dtype=self._dtype)
             # noise_sample = (
             #     torch.randn(gnumel, device=self._device, dtype=self._dtype)
             #     / (
-            #         group["ess"] * (group["hess"] + group["weight_decay"])*tau_sample
+            #         group["ess"] * (group["hess"] + group["weight_decay"])
             #     ).sqrt()
             # )
+            tau_sample = torch.tensor(gamma.rvs(a=alpha/2, scale=2/alpha, size=gnumel), device=self._device, dtype=self._dtype)
+            noise_sample = (
+                torch.randn(gnumel, device=self._device, dtype=self._dtype)
+                / (
+                    group["ess"] * (group["hess"] + group["weight_decay"])*tau_sample
+                ).sqrt()
+            )
             noise_samples.append(noise_sample)
 
             goffset = 0
