@@ -2,7 +2,8 @@
 # Custom ignores
 training_logs/
 paper_figures/
-
+datasets/
+vit/
 DATASETS/
 output/
 Python-3.8.10/
@@ -40,6 +41,8 @@ quadratic.py
 t_student.py
 welford.py
 
+1d_eos.py
+H_crit_plot.png
 
 RESULTS/
 __pycache__
