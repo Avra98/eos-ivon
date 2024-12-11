@@ -33,7 +33,7 @@ def evaluate(network, data, loss_fn, target, batch_size):
 
 
 def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
-         seed, weight_decay, device_id, finetune, hessian, optimizer):
+         seed, weight_decay, device_id, finetune, hessian, opt):
 
     # Initialization
     device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
@@ -61,12 +61,13 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
         config.image_size = 32
         config.patch_size = 8
         config.num_hidden_layers = 2
-        network = AutoModelForImageClassification.from_config(config)
+        network = AutoModelForImageClassification.from_config(config,attn_implementation="eager")
     else:
         network = AutoModelForImageClassification.from_pretrained(
             "WinKawaks/vit-tiny-patch16-224",
             num_labels=10,
-            ignore_mismatched_sizes=True
+            ignore_mismatched_sizes=True,
+            attn_implementation="eager",
         )
         if finetune == "lora":
             lora_config = LoraConfig(
@@ -110,39 +111,41 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
 
     loss_fn, acc_fn = get_loss_and_acc(loss)
 
-    if optimizer == "gd":
+    if opt == "gd":
         optimizer = torch.optim.SGD(ft_group, lr=lr, weight_decay=weight_decay)
-    elif optimizer == "adam":
+    elif opt == "adam":
         beta1=0.0
-        beta2=0.9
+        beta2=0.999
         optimizer = CustomAdam(ft_group, lr=lr,betas=(beta1,beta2))
-    elif optimizer == "ivon":
+    elif opt == "ivon":
         hess_init = 0.7
-        beta2 = 1
+        beta2 = 0.99999
         ess = 1e6
         print("Hessian init: ", hess_init)
         print("beta2: ", beta2)
         print("ess: ", ess)
+        rescale_lr= True if beta2==1 else False
+        print(rescale_lr)
         optimizer = IVON(
             ft_group, lr=lr, ess=ess, weight_decay=weight_decay, mc_samples=1,
-            beta1=0, beta2=beta2, hess_init=hess_init, rescale_lr=True, alpha=10
+            beta1=0, beta2=beta2, hess_init=hess_init, rescale_lr=False, alpha=10
         )
 
     eigs = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
-    if optimizer=="adam" and beta2 !=0:
+    if opt =="adam" or (opt =="ivon" and beta2 !=1):
         pre_eigs = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
 
 
     for step in range(max_steps):
 
-        if eig_freq != -1 and step % eig_freq == 0 and step >= 0:
+        if eig_freq != -1 and step % eig_freq == 0 and step >0:
             trainable_only = (hessian == "sub")
-            eigs[step // eig_freq, :] = get_hessian_eigenvalues(
-                network, loss_fn, train_data, train_label, trainable_only,
-                neigs=neigs, physical_batch_size=physical_batch_size, device=device
-            )
-            print("eigenvalues: ", eigs[step // eig_freq, :])
-            if optimizer=="adam" or (optimizer=="ivon" and beta2 !=1):
+            # eigs[step // eig_freq, :] = get_hessian_eigenvalues(
+            #     network, loss_fn, train_data, train_label, trainable_only,
+            #     neigs=neigs, physical_batch_size=physical_batch_size, device=device
+            # )
+            # print("eigenvalues: ", eigs[step // eig_freq, :])         
+            if opt =="adam" or (opt =="ivon" and beta2 !=1):
                 pre_eigs[step // eig_freq, :]= get_preconditioned_hessian_eigenvalues_vit(network, loss_fn,train_data, train_label,trainable_only, optimizer, neigs=neigs, physical_batch_size=physical_batch_size, device=device )
                 print("precond-eigs: ", pre_eigs[step // eig_freq, :])
         if step % 10 == 0:
@@ -177,7 +180,7 @@ if __name__ == "__main__":
     parser.add_argument("--device_id", type=int, default=0, help="GPU ID to use")
     parser.add_argument("--finetune", type=str, default=None, choices=["full", "lora", "lastlayer"], help="Finetuning strategy")
     parser.add_argument("--hessian", type=str, default="full", choices=["full", "sub"], help="Hessian mode")
-    parser.add_argument("--optimizer", type=str, default="gd", choices=["gd", "ivon","adam"], help="Optimizer to use")
+    parser.add_argument("--opt", type=str, default="gd", choices=["gd", "ivon","adam"], help="Optimizer to use")
     args = parser.parse_args()
 
     main(
@@ -185,5 +188,5 @@ if __name__ == "__main__":
         neigs=args.neigs, physical_batch_size=args.physical_batch_size,
         eig_freq=args.eig_freq, seed=args.seed, weight_decay=args.weight_decay,
         device_id=args.device_id, finetune=args.finetune,
-        hessian=args.hessian, optimizer=args.optimizer
+        hessian=args.hessian, opt=args.opt
     )

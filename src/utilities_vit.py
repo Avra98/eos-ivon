@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from scipy.sparse.linalg import LinearOperator, eigsh
 from torch.nn.utils import parameters_to_vector
-from utilities import CustomAdam, compute_preconditioned_hvp, get_preconditioned_hessian_eigenvalues, get_adam_preconditioner, get_ivon_preconditioner, iterate_dataset
+from utilities import CustomAdam, compute_preconditioned_hvp, get_preconditioned_hessian_eigenvalues, iterate_dataset
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -124,3 +124,45 @@ def get_preconditioned_hessian_eigenvalues_vit(
     nparams = len(parameters_to_vector(params).to(device))
     evals, evecs = lanczos(hvp_delta, nparams, neigs, device)
     return evals
+
+
+def get_adam_preconditioner(optimizer, device):
+    preconditioner = []
+    for group in optimizer.param_groups:
+        #print(group)
+        for p in group['params']:
+            #print("in loop",p.grad)
+            if p.grad is None:
+                continue
+            state = optimizer.state[p]
+            #print("state is", state)
+            if 'exp_avg_sq' in state:
+                v_t = state['exp_avg_sq']
+                step = state['step']
+                beta2 = group['betas'][1]
+                beta1 = group['betas'][0]
+                # Bias-corrected second moment
+                v_t_hat = v_t / (1 - beta2 ** step)
+                # Inverse preconditioner (element-wise reciprocal of the square root of v_t_hat)
+                inv_preconditioner = (1 - beta1 ** step) / (torch.sqrt(v_t_hat) + group['eps'])
+                preconditioner.append(inv_preconditioner.flatten())
+    return torch.cat(preconditioner).to(device)
+
+def get_ivon_preconditioner(ivon_optimizer, device):
+    preconditioner = []
+    for group in ivon_optimizer.param_groups:
+        hess = group['hess']  # Extract the Hessian approximation once for each group
+        step = ivon_optimizer.current_step
+        beta1 = group['beta1']
+        
+        # Bias-correct the Hessian
+        hess_hat = hess
+        
+        # Compute the inverse preconditioner using the Hessian
+        inv_preconditioner = (1 - beta1 ** step) / (hess_hat + group['weight_decay'])
+        
+        # Append the inverse preconditioner only once for each group
+        preconditioner.append(inv_preconditioner.flatten())
+    
+    # Concatenate all flattened preconditioners into a single tensor and move to the specified device
+    return torch.cat(preconditioner).to(device)
