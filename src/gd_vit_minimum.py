@@ -125,10 +125,11 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
         print("beta2: ", beta2)
         print("ess: ", ess)
         rescale_lr= True if beta2==1 else False
-        print(rescale_lr)
+        print("rescale_lr: ", rescale_lr)
+        print("lr: ", lr)
         optimizer = IVON(
             ft_group, lr=lr, ess=ess, weight_decay=weight_decay, mc_samples=1,
-            beta1=0, beta2=beta2, hess_init=hess_init, rescale_lr=False, alpha=10
+            beta1=0, beta2=beta2, hess_init=hess_init, rescale_lr=rescale_lr, alpha=10
         )
 
     eigs = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
