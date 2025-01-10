@@ -169,11 +169,11 @@ if __name__ == "__main__":
     parser.add_argument("--max_steps", type=int, default=10000)
 
     parser.add_argument("--opt", type=str, default="gd", choices=["gd", "ivon", "adam"])
-    parser.add_argument("--lr", type=float, default=1e-2)
+    parser.add_argument("--lr", type=float, default=0.005)
     parser.add_argument("--weight_decay", type=float, default=0.0)
 
-    parser.add_argument("--ess", type=int, default=1)
-    parser.add_argument("--hess_init", type=float, default=1e-3)
+    parser.add_argument("--ess", type=int, default=5e4)
+    parser.add_argument("--hess_init", type=float, default=1)
     parser.add_argument("--ivon_beta2", type=float, default=1)
     parser.add_argument("--alpha", type=float, default=10)
 
