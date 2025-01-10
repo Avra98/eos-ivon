@@ -58,13 +58,12 @@ def main(args):
             num_classes = 10
             train_dataset = CIFAR10(root="datasets", train=True)
             test_dataset = CIFAR10(root="datasets", train=False)
-            train_data = train_dataset.data.p
         elif args.dataset == "cifar100":
             num_classes = 100
             train_dataset = CIFAR100(root="datasets", train=True)
             test_dataset = CIFAR100(root="datasets", train=False)
-        train_data = train_dataset.data.permute(0, 3, 1, 2)
-        test_data = test_dataset.data.permute(0, 3, 1, 2)
+        train_data = train_dataset.data.transpose(0, 3, 1, 2)
+        test_data = test_dataset.data.transpose(0, 3, 1, 2)
 
     elif args.dataset == "fashionmnist":
         num_channels = 1
@@ -104,6 +103,7 @@ def main(args):
         network = WrapperModel(network)
     elif args.arch == "resnet20":
         network = resnet20(num_classes=num_classes, input_channels=num_channels)
+    network.to(device)
 
     if args.opt == "gd":
         optimizer = SGD(network.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -122,14 +122,14 @@ def main(args):
 
         if args.eig_freq != -1 and step % args.eig_freq == 0 and step > 0:
             eig = get_hessian_eigenvalues(
-                network, loss_fn, train_data, train_label, False,
+                network, loss_fn, train_data, train_label,
                 neigs=args.neigs, physical_batch_size=args.physical_batch_size, device=device
             )
             print("eigenvalues: ", eig, flush=True)
 
             if args.opt == "adam" or (args.opt =="ivon" and args.ivon_beta2 != 1):
-                pre_eig = get_preconditioned_hessian_eigenvalues_vit(
-                    network, loss_fn,train_data, train_label, False, optimizer,
+                pre_eig = get_preconditioned_hessian_eigenvalues(
+                    network, loss_fn,train_data, train_label, optimizer,
                     neigs=args.neigs, physical_batch_size=args.physical_batch_size, device=device
                 )
                 print("precond-eigs: ", pre_eig)
