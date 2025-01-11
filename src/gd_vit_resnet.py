@@ -136,8 +136,9 @@ def main(args):
                 )
                 print("precond-eigs: ", pre_eig)
 
-            hess = optimizer.state_dict()["param_groups"][0]["hess"]
-            print(hess.max(), hess.min(), hess.mean())
+            if args.opt == "ivon":
+                hess = optimizer.state_dict()["param_groups"][0]["hess"]
+                print(hess.max(), hess.min(), hess.mean())
 
         if step % 10 == 0:
             train_loss, train_acc = evaluate(
