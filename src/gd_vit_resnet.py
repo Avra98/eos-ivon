@@ -36,6 +36,8 @@ def evaluate(network, data, loss_fn, target, batch_size):
 
 def main(args):
 
+    print(args)
+
     # Initialization
     device = torch.device(f"cuda:{args.device_id}" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(args.seed)
