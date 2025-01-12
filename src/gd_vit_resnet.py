@@ -64,23 +64,36 @@ def main(args):
             num_classes = 100
             train_dataset = CIFAR100(root="datasets", train=True)
             test_dataset = CIFAR100(root="datasets", train=False)
-        train_data = train_dataset.data.transpose(0, 3, 1, 2)
-        test_data = test_dataset.data.transpose(0, 3, 1, 2)
+        train_data = torch.tensor(train_dataset.data.transpose(0, 3, 1, 2))
+        train_label = torch.tensor(train_dataset.targets)
+        test_data = torch.tensor(test_dataset.data.transpose(0, 3, 1, 2))
+        test_label = torch.tensor(test_dataset.targets)
 
     elif args.dataset == "fashionmnist":
         num_channels = 1
         num_classes = 10
         train_dataset = FashionMNIST(root="datasets", train=True)
         test_dataset = FashionMNIST(root="datasets", train=False)
-        train_data = np.zeros((len(train_dataset), 1, 32, 32), dtype=np.uint8)
-        test_data = np.zeros((len(test_dataset), 1, 32, 32), dtype=np.uint8)
+        train_data = torch.zeros(len(train_dataset), 1, 32, 32, dtype=torch.uint8)
+        test_data = torch.zeros(len(test_dataset), 1, 32, 32, dtype=torch.uint8)
         train_data[:, :, 2:30, 2:30] = train_dataset.data[:, None]
+        train_label = train_dataset.targets
         test_data[:, :, 2:30, 2:30] = test_dataset.data[:, None]
+        test_label = test_dataset.targets
 
-    train_data = (torch.tensor(train_data, dtype=torch.float32, device=device) - 127.5) / 127.5
-    train_label = torch.tensor(train_dataset.targets, device=device)
-    test_data = (torch.tensor(test_data, dtype=torch.float32, device=device) - 127.5) / 127.5
-    test_label = torch.tensor(test_dataset.targets, device=device)
+    if args.subset_size > 0:
+        num_samples = args.subset_size // num_classes
+        idx_list = []
+        for i in range(num_classes):
+            idx_list.extend(list(torch.where(train_label == i)[0][:num_samples]))
+        perm = torch.randperm(len(idx_list))
+        train_data = train_data[idx_list][perm]
+        train_label = train_label[idx_list][perm]
+
+    train_data = (train_data.to(device) - 127.5) / 127.5
+    train_label = train_label.to(device)
+    test_data = (test_data.to(device) - 127.5) / 127.5
+    test_label = test_label.to(device)
 
     if args.loss == "mse":
         train_label = torch.nn.functional.one_hot(train_label, num_classes=num_classes)
@@ -168,6 +181,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--arch", type=str, default="vit", choices=["vit", "resnet20"])
     parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100", "fashionmnist"])
+    parser.add_argument("--subset_size", type=int, default=-1)
     parser.add_argument("--loss", type=str, default="mse", choices=["ce", "mse"])
     parser.add_argument("--max_steps", type=int, default=10000)
 
