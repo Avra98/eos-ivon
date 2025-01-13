@@ -171,7 +171,7 @@ def main(args):
         with optimizer.sampled_params(train=True) if optimizer.__class__.__name__ == "IVON" else nullcontext():
             for (X, y) in zip(train_data.chunk(chunk_num), train_label.chunk(chunk_num)):
                 output = network(X)
-                loss = loss_fn(output, y) / len(train_dataset)
+                loss = loss_fn(output, y) / len(train_data)
                 loss_sum += loss
                 loss.backward()
         # print(f"Step {step}, loss: {loss_sum:.3f}")
