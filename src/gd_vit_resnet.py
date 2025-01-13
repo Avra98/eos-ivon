@@ -90,10 +90,13 @@ def main(args):
         train_data = train_data[idx_list][perm]
         train_label = train_label[idx_list][perm]
 
-    train_data = (train_data.to(device) - 127.5) / 127.5
-    train_label = train_label.to(device)
-    test_data = (test_data.to(device) - 127.5) / 127.5
-    test_label = test_label.to(device)
+    train_data, train_label = train_data.float().to(device), train_label.to(device)
+    test_data, test_label = test_data.float().to(device), test_label.to(device)
+    mean = train_data.mean(dim=(0, 2, 3), keepdim=True)
+    std = train_data.std(dim=(0, 2, 3), keepdim=True)
+    train_data = (train_data - mean) / std
+    test_data = (test_data - mean) / std
+    del mean, std
 
     if args.loss == "mse":
         train_label = torch.nn.functional.one_hot(train_label, num_classes=num_classes)
