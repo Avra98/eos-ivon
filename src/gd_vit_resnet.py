@@ -168,12 +168,13 @@ def main(args):
         loss_sum = 0
         chunk_num = math.ceil(len(train_data) / args.physical_batch_size)
         network.train()
-        with optimizer.sampled_params(train=True) if optimizer.__class__.__name__ == "IVON" else nullcontext():
-            for (X, y) in zip(train_data.chunk(chunk_num), train_label.chunk(chunk_num)):
-                output = network(X)
-                loss = loss_fn(output, y) / len(train_data)
-                loss_sum += loss
-                loss.backward()
+        for _ in range(args.post_samples):
+            with optimizer.sampled_params(train=True) if optimizer.__class__.__name__ == "IVON" else nullcontext():
+                for (X, y) in zip(train_data.chunk(chunk_num), train_label.chunk(chunk_num)):
+                    output = network(X)
+                    loss = loss_fn(output, y) / len(train_data)
+                    loss_sum += loss
+                    loss.backward()
         # print(f"Step {step}, loss: {loss_sum:.3f}")
         optimizer.step()
         optimizer.zero_grad()
@@ -196,6 +197,7 @@ if __name__ == "__main__":
     parser.add_argument("--hess_init", type=float, default=1)
     parser.add_argument("--ivon_beta2", type=float, default=1)
     parser.add_argument("--alpha", type=float, default=10)
+    parser.add_argument("--post_samples", type=float, default=1)
 
     parser.add_argument("--device_id", type=int, default=0)
     parser.add_argument("--seed", type=int, default=0)
