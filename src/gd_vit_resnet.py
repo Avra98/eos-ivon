@@ -197,7 +197,7 @@ if __name__ == "__main__":
     parser.add_argument("--hess_init", type=float, default=1)
     parser.add_argument("--ivon_beta2", type=float, default=1)
     parser.add_argument("--alpha", type=float, default=10)
-    parser.add_argument("--post_samples", type=float, default=1)
+    parser.add_argument("--post_samples", type=int, default=1)
 
     parser.add_argument("--device_id", type=int, default=0)
     parser.add_argument("--seed", type=int, default=0)
