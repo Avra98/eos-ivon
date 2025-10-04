@@ -1,36 +1,159 @@
-## Variational Learning at Egde of Stability
+# Variational Learning Finds Flatter Solutions at the Edge of Stability
 
-This repository contains source code for experimenting Edge of stability behaviour for IVON.
+This repository contains the code and experiments for the paper **"Variational Learning Finds Flatter Solutions at the Edge of Stability"** by Avrajit Ghosh et al.
 
+📄 **Paper**: [arXiv:2506.12903](https://arxiv.org/abs/2506.12903)
 
+## Abstract
 
-The structure of this README is:
-1. [Preliminaries](#anchors-in-markdown)
-2. [Quick start](#quick-start)
-3. [Complete documentation](#complete-documentation)
+Variational Learning (VL) has recently gained popularity for training deep neural networks and is competitive to standard learning methods. Part of its empirical success can be explained by theories such as PAC-Bayes bounds, minimum description length and marginal likelihood, but there are few tools to unravel the implicit regularization in play. Here, we analyze the implicit regularization of VL through the Edge of Stability (EoS) framework. EoS has previously been used to show that gradient descent can find flat solutions and we extend this result to VL to show that it can find even flatter solutions.
 
-### Preliminaries
-
-To run the code, you need to set two environment variables:
-1. Set the `DATASETS` environment variable to a directory where datasets will be stored.
- For example: `export DATASET="/my/directory/datasets"`.
-2. Set the `RESULTS` environment variable to a directory where results will be stored.
- For example: `export RESULTS="/my/directory/results"`.
-
-### Quick start
-
-To run the EOS dynamics for GD, please run 
+## Repository Structure
 
 ```
-python src/gd.py --dataset="cifar10-10k" --arch="fc-tanh"  --loss="mse"  --lr=0.05 -max_steps=10000 --neigs=2  --eig_freq=50
+edge-of-stability/
+├── src/                          # Core source code
+│   ├── archs.py                  # Network architectures
+│   ├── gd.py                     # Gradient descent implementations
+│   ├── utilities.py              # Utility functions
+│   └── network_stability.py      # Network stability analysis
+├── data/                         # Data directory (gitignored)
+├── figures/                      # Generated figures (gitignored)
+├── training_logs/                # Training logs (gitignored)
+├── requirements.txt              # Python dependencies
+├── README.md                     # This file
+└── .gitignore                    # Git ignore rules
 ```
 
-To run EOS dynamics for fixed covariance IVON run
+## Installation
 
+### Prerequisites
+
+- Python 3.8+
+- CUDA (for GPU training)
+
+### Setup
+
+1. Clone the repository:
+```bash
+git clone git@github.com:Avra98/eos-ivon.git
+cd eos-ivon
 ```
-python src/gd.py --dataset="cifar10-10k" --arch="fc-tanh"  --loss="mse"  --lr=0.05 -max_steps=10000 --neigs=2  --eig_freq=50 --opt="ivon" --beta2=1.0 --h0=0.7 
+
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### Acknowledgement
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-This repository is built on top of [this implementation](https://github.com/locuslab/edge-of-stability), which is based on the paper [Gradient Descent on Neural Networks Typically Occurs at the Edge of Stability](https://openreview.net/forum?id=jh-rTtvkGeM).
+## Usage
+
+### Running Experiments
+
+#### Edge of Stability Analysis
+```bash
+# Run EoS analysis for different networks
+python src/network_stability.py --arch fc-tanh --dataset cifar10
+python src/network_stability.py --arch resnet20 --dataset cifar10
+```
+
+#### Variational Learning Experiments
+```bash
+# Run VL experiments
+python src/gd.py --method ivon --lr 0.1 --mc_samples 10
+```
+
+#### Quadratic Analysis
+```bash
+# Run quadratic dynamics analysis
+python quad_dyn_sigma_n.py
+```
+
+### Key Scripts
+
+- `src/gd.py`: Main training script with VL and standard GD
+- `src/network_stability.py`: Network stability analysis
+- `quad_dyn_sigma_n.py`: Quadratic dynamics analysis
+- `src/utilities.py`: Utility functions for analysis
+
+## Experiments
+
+### 1. Edge of Stability Analysis
+- Analysis of sharpness dynamics during training
+- Comparison between standard GD and VL
+- Network-specific critical sharpness values
+
+### 2. Variational Learning Dynamics
+- Posterior covariance analysis
+- Monte Carlo sample effects
+- Flatter solution finding
+
+### 3. Quadratic Problem Analysis
+- Theoretical foundations
+- Dynamics of VL on quadratic objectives
+- Connection to EoS framework
+
+## Key Findings
+
+1. **Flatter Solutions**: VL finds flatter solutions compared to standard GD
+2. **Posterior Covariance Control**: Controlling posterior covariance affects solution flatness
+3. **Monte Carlo Samples**: Number of MC samples influences the flatness of found solutions
+4. **Network Generalization**: Results hold across different architectures (ResNet, ViT, FC networks)
+
+## Reproducing Results
+
+### Paper Figures
+
+The main paper figures can be reproduced by running:
+
+```bash
+# Figure 1: EoS dynamics comparison
+python src/network_stability.py --generate_figures
+
+# Figure 2: VL sharpness analysis
+python src/gd.py --analysis sharpness --method ivon
+
+# Figure 3: Quadratic dynamics
+python quad_dyn_sigma_n.py --plot_dynamics
+```
+
+### Experiment Configurations
+
+All experiment configurations are documented in the respective script files. Key parameters:
+
+- `--lr`: Learning rate
+- `--mc_samples`: Number of Monte Carlo samples for VL
+- `--arch`: Network architecture
+- `--dataset`: Dataset to use
+
+## Citation
+
+If you use this code in your research, please cite:
+
+```bibtex
+@article{ghosh2024variational,
+  title={Variational Learning Finds Flatter Solutions at the Edge of Stability},
+  author={Ghosh, Avrajit and Cong, Bai and Yokota, Rio and Ravishankar, Saiprasad and Wang, Rongrong and Tao, Molei and Khan, Mohammad Emtiyaz and Möllenhoff, Thomas},
+  journal={arXiv preprint arXiv:2506.12903},
+  year={2024}
+}
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Contact
+
+For questions about this repository, please contact:
+- Avrajit Ghosh: [GitHub](https://github.com/Avra98)
+- Paper: [arXiv:2506.12903](https://arxiv.org/abs/2506.12903)
+
+## Acknowledgments
+
+We gratefully acknowledge support from the Simons Foundation and all contributors to this work.

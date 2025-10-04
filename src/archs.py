@@ -3,7 +3,7 @@ from typing import List
 import torch
 import torch.nn as nn
 
-from resnet_cifar import resnet32
+from resnet_cifar import resnet32, resnet20, resnet44, resnet56, resnet110
 from vgg import vgg11_nodropout, vgg11_nodropout_bn
 from data import num_classes, num_input_channels, image_size, num_pixels
 
@@ -162,6 +162,12 @@ def load_architecture(arch_id: str, dataset_name: str) -> nn.Module:
     #  ======   real networks on CIFAR-10  =======
     elif arch_id == 'resnet32':
         return resnet32()
+    elif arch_id == 'resnet20':
+        return resnet20()
+    elif arch_id == 'resnet44':
+        return resnet44()
+    elif arch_id == 'resnet56':
+        return resnet56()
     elif arch_id == 'vgg11':
         return vgg11_nodropout()
     elif arch_id == 'vgg11-bn':

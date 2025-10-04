@@ -12,7 +12,7 @@ from transformers import AutoConfig, AutoModelForImageClassification
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ivon._ivon import IVON
-from utilities_vit import get_hessian_eigenvalues, get_loss_and_acc,get_preconditioned_hessian_eigenvalues_vit
+from utilities_vit import get_hessian_eigenvalues, get_loss_and_acc,get_preconditioned_hessian_eigenvalues_vit, calculate_hcrit_projected 
 from utilities import CustomAdam, compute_preconditioned_hvp
 
 
@@ -119,7 +119,7 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
         optimizer = CustomAdam(ft_group, lr=lr,betas=(beta1,beta2))
     elif opt == "ivon":
         hess_init = 0.7
-        beta2 = 0.99999
+        beta2 = 1.0
         ess = 1e6
         print("Hessian init: ", hess_init)
         print("beta2: ", beta2)
@@ -132,6 +132,7 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
         )
 
     eigs = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
+    hcrit = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
     if opt =="adam" or (opt =="ivon" and beta2 !=1):
         pre_eigs = torch.zeros(max_steps // eig_freq if eig_freq >= 0 else 0, neigs)
 
@@ -140,11 +141,12 @@ def main(loss, lr, max_steps, neigs, physical_batch_size, eig_freq,
 
         if eig_freq != -1 and step % eig_freq == 0 and step >0:
             trainable_only = (hessian == "sub")
-            # eigs[step // eig_freq, :] = get_hessian_eigenvalues(
-            #     network, loss_fn, train_data, train_label, trainable_only,
-            #     neigs=neigs, physical_batch_size=physical_batch_size, device=device
-            # )
-            # print("eigenvalues: ", eigs[step // eig_freq, :])         
+            eigs[step // eig_freq, :] = get_hessian_eigenvalues(
+                network, loss_fn, train_data, train_label, trainable_only,
+                neigs=neigs, physical_batch_size=physical_batch_size, device=device
+            )
+            print("eigenvalues: ", eigs[step // eig_freq, :])   
+            hcrit[step // eig_freq, :] = calculate_hcrit_projected(network,loss_fn,train_data)  
             if opt =="adam" or (opt =="ivon" and beta2 !=1):
                 pre_eigs[step // eig_freq, :]= get_preconditioned_hessian_eigenvalues_vit(network, loss_fn,train_data, train_label,trainable_only, optimizer, neigs=neigs, physical_batch_size=physical_batch_size, device=device )
                 print("precond-eigs: ", pre_eigs[step // eig_freq, :])
