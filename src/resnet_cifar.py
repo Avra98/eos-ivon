@@ -47,11 +47,11 @@ class BasicBlock(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=10):
+    def __init__(self, block, layers, num_classes=10, input_channels=3):
         super(ResNet, self).__init__()
         self.num_layers = sum(layers)
         self.inplanes = 16
-        self.conv1 = conv3x3(3, 16)
+        self.conv1 = conv3x3(input_channels, 16)
         self.bn1 = nn.BatchNorm2d(16)
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self._make_layer(block, 16, layers[0])

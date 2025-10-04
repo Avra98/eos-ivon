@@ -129,6 +129,7 @@ class IVON(torch.optim.Optimizer):
     @contextmanager
     def sampled_params(self, train: bool = False):
         param_avg, noise = self._sample_params()
+        #print("param_avg and noise", param_avg,noise)
         #print("it went here")
         #print("param_avg and noise:",param_avg,noise)
         yield
@@ -155,7 +156,7 @@ class IVON(torch.optim.Optimizer):
                     else:
                         param_grads.append(torch.zeros_like(p).flatten())
                 offset += p.numel()
-                #print("p.data and p.grad is",p.data,p.grad)
+                # print("p.data and p.grad is",p.data,p.grad)
                 # print("param_grads list is", param_grads)
         assert offset == self._numel  # sanity check
 
@@ -234,6 +235,7 @@ class IVON(torch.optim.Optimizer):
             #     ).sqrt()
             # )
             noise_samples.append(noise_sample)
+            #print("noise sample is",noise_sample)
 
             goffset = 0
             for p in group["params"]:
@@ -246,6 +248,7 @@ class IVON(torch.optim.Optimizer):
                 #print("pnoise norm",torch.norm(p_noise))
                 param_avgs.append(p_avg)
                 p.data = (p_avg + p_noise).view(p.shape)
+                #print("pdata is", p.data)
                 goffset += numel
                 offset += numel
             assert goffset == group["numel"]  # sanity check
